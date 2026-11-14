@@ -16,6 +16,8 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from google import genai
+from climate_engine import get_historical_climate
+from crop_engine import build_recommendations
 
 
 # ============================================
@@ -35,7 +37,7 @@ app = FastAPI(
         "HANOVA NASA-powered agricultural "
         "exploration and AI platform"
     ),
-    version="3.0"
+    version="5.0"
 )
 
 # Local development origins.
@@ -285,7 +287,7 @@ def home():
     return {
         "message": "BUMI SHIFT API is running",
         "team": "HANOVA",
-        "version": "3.0",
+        "version": "5.0",
         "website": "/app"
     }
 
@@ -475,6 +477,44 @@ def ask_bumi(farm: FarmQuestion):
             "soil_ph": farm.soil_ph
         }
     }
+
+
+# ============================================
+# HISTORICAL NASA CLIMATE ENDPOINT
+# ============================================
+
+@app.get("/climate/history")
+def climate_history(
+    latitude: float = Query(default=DEFAULT_LATITUDE, ge=-90, le=90),
+    longitude: float = Query(default=DEFAULT_LONGITUDE, ge=-180, le=180)
+):
+    check_location(latitude, longitude)
+    try:
+        return get_historical_climate(latitude, longitude)
+    except (requests.RequestException, ValueError, KeyError, TypeError) as error:
+        logger.warning("Historical NASA retrieval failed: %s", type(error).__name__)
+        raise HTTPException(
+            status_code=503,
+            detail="Historical NASA climate data are currently unavailable."
+        ) from error
+
+
+# ============================================
+# CROP AND ROTATION RECOMMENDATIONS
+# ============================================
+
+@app.get("/recommendations")
+def recommendations(
+    latitude: float = Query(default=DEFAULT_LATITUDE, ge=-90, le=90),
+    longitude: float = Query(default=DEFAULT_LONGITUDE, ge=-180, le=180)
+):
+    check_location(latitude, longitude)
+    try:
+        history = get_historical_climate(latitude, longitude)
+        return build_recommendations(latitude, longitude, history)
+    except (requests.RequestException, ValueError, KeyError, TypeError) as error:
+        logger.warning("Recommendations failed: %s", type(error).__name__)
+        raise HTTPException(status_code=503, detail="Climate-based recommendations are temporarily unavailable.") from error
 
 
 # ============================================
