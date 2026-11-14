@@ -1,6 +1,23 @@
 
+"""
+BUMI SHIFT 5.0
+HANOVA | Sarawak Crop Decision Support
+
+Backend services:
+- NASA POWER recent climate observations
+- NASA POWER ten-year historical climate
+- Crop compatibility screening
+- Crop rotation comparison
+- Gemini-powered Ask BUMI
+- FastAPI website hosting
+
+This prototype produces screening indicators,
+not guaranteed agricultural outcomes.
+"""
+
 import os
 import math
+import json
 import logging
 
 from pathlib import Path
@@ -16,6 +33,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from google import genai
+
 from climate_engine import get_historical_climate
 from crop_engine import build_recommendations
 
@@ -34,14 +52,14 @@ logger = logging.getLogger("BUMI_SHIFT")
 app = FastAPI(
     title="BUMI SHIFT API",
     description=(
-        "HANOVA NASA-powered agricultural "
-        "exploration and AI platform"
+        "HANOVA NASA-powered crop rotation "
+        "and environmental decision-support system"
     ),
     version="5.0"
 )
 
-# Local development origins.
-# When deployed, HTML and API share one origin.
+# Same-origin hosting is used on Render.
+# These origins support optional local development.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -57,12 +75,11 @@ NASA_URL = (
     "api/temporal/daily/point"
 )
 
-# Default demonstration location near Samarahan.
 DEFAULT_LATITUDE = 1.46
 DEFAULT_LONGITUDE = 110.49
 
-# Approximate pilot-region bounding box.
-# This is NOT an exact Sarawak boundary.
+# Approximate Sarawak pilot bounding box.
+# This is not an exact administrative boundary.
 SARAWAK_LAT_MIN = 0.5
 SARAWAK_LAT_MAX = 5.1
 SARAWAK_LON_MIN = 109.5
@@ -75,7 +92,7 @@ GEMINI_MODEL = os.getenv(
 
 
 # ============================================
-# 2. DATA MODELS
+# 2. INPUT MODEL
 # ============================================
 
 class FarmQuestion(BaseModel):
@@ -97,6 +114,9 @@ class FarmQuestion(BaseModel):
         le=180
     )
 
+    # Retained for compatibility with the
+    # previous HTML interface.
+    # Farmers are not required to supply these.
     drainage: str = Field(
         default="unknown",
         pattern="^(unknown|good|poor)$"
@@ -129,18 +149,12 @@ def check_location(latitude, longitude):
 
 
 # ============================================
-# 4. NASA POWER DATA RETRIEVAL
+# 4. RECENT NASA POWER OBSERVATIONS
 # ============================================
 
 def fetch_nasa_data(latitude, longitude):
 
     check_location(latitude, longitude)
-
-    # NASA POWER daily observations can lag
-    # behind today's date.
-    #
-    # Request 90 calendar days, then identify
-    # the latest valid observation.
 
     end_date = date.today()
     start_date = end_date - timedelta(days=89)
@@ -166,7 +180,9 @@ def fetch_nasa_data(latitude, longitude):
 
     payload = response.json()
 
-    parameters = payload["properties"]["parameter"]
+    parameters = payload[
+        "properties"
+    ]["parameter"]
 
     rainfall = parameters["PRECTOTCORR"]
     temperature = parameters["T2M"]
@@ -180,10 +196,11 @@ def fetch_nasa_data(latitude, longitude):
         rain = rainfall[day]
         temp = temperature[day]
 
-        # Reject missing or invalid values.
         if not (
             isinstance(rain, (int, float))
+            and not isinstance(rain, bool)
             and isinstance(temp, (int, float))
+            and not isinstance(temp, bool)
             and math.isfinite(rain)
             and math.isfinite(temp)
             and rain >= 0
@@ -203,10 +220,6 @@ def fetch_nasa_data(latitude, longitude):
             "NASA returned no valid paired observations."
         )
 
-    # ========================================
-    # 5. SEVEN-DAY DATA VALIDATION
-    # ========================================
-
     latest_date = datetime.strptime(
         valid[-1]["date"],
         "%Y%m%d"
@@ -217,14 +230,16 @@ def fetch_nasa_data(latitude, longitude):
     recent = [
         row for row in valid
         if window_start <= datetime.strptime(
-            row["date"], "%Y%m%d"
+            row["date"],
+            "%Y%m%d"
         ).date() <= latest_date
     ]
 
     complete_window = (
         len(recent) == 7
         and len({
-            row["date"] for row in recent
+            row["date"]
+            for row in recent
         }) == 7
     )
 
@@ -272,9 +287,39 @@ def fetch_nasa_data(latitude, longitude):
         "data_note": (
             "NASA POWER provides gridded "
             "environmental estimates rather than "
-            "direct measurements at a farm."
+            "direct measurements at individual farms."
         )
     }
+
+
+# ============================================
+# 5. CACHED HISTORICAL CLIMATE
+# ============================================
+
+# Coordinates are rounded for cache reuse.
+# The cache is stored in server memory and
+# disappears when Render restarts.
+#
+# A historical request can be slow.
+# The first request is not cached.
+
+@lru_cache(maxsize=64)
+def cached_historical_climate(latitude, longitude):
+
+    return get_historical_climate(
+        latitude,
+        longitude
+    )
+
+
+def historical_climate(latitude, longitude):
+
+    check_location(latitude, longitude)
+
+    return cached_historical_climate(
+        round(latitude, 4),
+        round(longitude, 4)
+    )
 
 
 # ============================================
@@ -288,29 +333,32 @@ def home():
         "message": "BUMI SHIFT API is running",
         "team": "HANOVA",
         "version": "5.0",
-        "website": "/app"
+        "website": "/app",
+        "endpoints": [
+            "/nasa",
+            "/climate/history",
+            "/recommendations",
+            "/ask"
+        ]
     }
 
 
 # ============================================
-# 7. NASA ENDPOINT
+# 7. RECENT NASA ENDPOINT
 # ============================================
 
 @app.get("/nasa")
 def get_nasa(
-
     latitude: float = Query(
         default=DEFAULT_LATITUDE,
         ge=-90,
         le=90
     ),
-
     longitude: float = Query(
         default=DEFAULT_LONGITUDE,
         ge=-180,
         le=180
     )
-
 ):
 
     try:
@@ -330,21 +378,124 @@ def get_nasa(
     ) as error:
 
         logger.warning(
-            "NASA retrieval failed: %s",
+            "NASA recent retrieval failed: %s",
             type(error).__name__
         )
 
         raise HTTPException(
             status_code=503,
             detail=(
-                "NASA observations are unavailable. "
-                "No historical fallback was substituted."
+                "Recent NASA observations are "
+                "temporarily unavailable."
             )
         ) from error
 
 
 # ============================================
-# 8. GEMINI AI — ASK BUMI
+# 8. HISTORICAL CLIMATE ENDPOINT
+# ============================================
+
+@app.get("/climate/history")
+def climate_history(
+    latitude: float = Query(
+        default=DEFAULT_LATITUDE,
+        ge=-90,
+        le=90
+    ),
+    longitude: float = Query(
+        default=DEFAULT_LONGITUDE,
+        ge=-180,
+        le=180
+    )
+):
+
+    try:
+        return historical_climate(
+            latitude,
+            longitude
+        )
+
+    except HTTPException:
+        raise
+
+    except (
+        requests.RequestException,
+        ValueError,
+        KeyError,
+        TypeError
+    ) as error:
+
+        logger.warning(
+            "Historical climate retrieval failed: %s",
+            type(error).__name__
+        )
+
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Historical NASA climate data "
+                "are temporarily unavailable."
+            )
+        ) from error
+
+
+# ============================================
+# 9. CROP RECOMMENDATIONS ENDPOINT
+# ============================================
+
+@app.get("/recommendations")
+def get_recommendations(
+    latitude: float = Query(
+        default=DEFAULT_LATITUDE,
+        ge=-90,
+        le=90
+    ),
+    longitude: float = Query(
+        default=DEFAULT_LONGITUDE,
+        ge=-180,
+        le=180
+    )
+):
+
+    try:
+
+        history = historical_climate(
+            latitude,
+            longitude
+        )
+
+        return build_recommendations(
+            latitude,
+            longitude,
+            history
+        )
+
+    except HTTPException:
+        raise
+
+    except (
+        requests.RequestException,
+        ValueError,
+        KeyError,
+        TypeError
+    ) as error:
+
+        logger.warning(
+            "Crop recommendation failed: %s",
+            type(error).__name__
+        )
+
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Crop recommendations are "
+                "temporarily unavailable."
+            )
+        ) from error
+
+
+# ============================================
+# 10. ASK BUMI — GEMINI AI
 # ============================================
 
 @app.post("/ask")
@@ -357,6 +508,7 @@ def ask_bumi(farm: FarmQuestion):
         )
 
     try:
+
         nasa = fetch_nasa_data(
             farm.latitude,
             farm.longitude
@@ -372,60 +524,58 @@ def ask_bumi(farm: FarmQuestion):
         TypeError
     ) as error:
 
+        logger.warning(
+            "NASA data unavailable for Ask BUMI: %s",
+            type(error).__name__
+        )
+
         raise HTTPException(
             status_code=503,
             detail=(
                 "NASA observations are unavailable. "
-                "BUMI cannot provide a current-data "
-                "assessment."
+                "BUMI cannot assess recent conditions."
             )
         ) from error
 
     evidence = {
-        "nasa": nasa,
+        "recent_nasa": nasa,
         "farmer_reported_drainage": farm.drainage,
         "farmer_provided_soil_ph": farm.soil_ph
     }
 
     instructions = """
-    You are BUMI, an agricultural evidence
-    assistant developed by HANOVA for Sarawak.
+    You are BUMI, a friendly agricultural
+    evidence assistant developed by HANOVA
+    for Sarawak farmers.
 
     Explain the supplied NASA POWER observations
-    and farmer-reported field information.
+    using understandable language.
 
-    Scientific requirements:
+    Scientific rules:
 
     1. Use only supplied numerical observations.
 
-    2. Always identify the latest observation date.
+    2. Identify the latest observation date.
 
     3. Distinguish NASA gridded estimates
-       from actual farm measurements.
+       from direct farm measurements.
 
-    4. Never invent rainfall, soil pH, crop yields,
-       soil nutrients, flooding or crop requirements.
+    4. Never invent rainfall, soil properties,
+       crop yields or profits.
 
-    5. If the seven-day window is incomplete,
+    5. Do not claim historical observations
+       are future weather forecasts.
+
+    6. Do not guarantee crop suitability.
+
+    7. If seven-day observations are incomplete,
        do not report a seven-day rainfall total.
 
-    6. Explain when environmental observations
-       are outdated or incomplete.
+    8. Explain uncertainty and missing evidence.
 
-    7. Farmer drainage and soil information
-       are self-reported.
+    9. Answer in the farmer's language.
 
-    8. Never guarantee crop suitability,
-       crop growth or future yields.
-
-    9. Identify missing agricultural evidence.
-
-    10. Answer in the farmer's language.
-
-    11. Use clear and understandable language.
-
-    12. Do not claim NASA POWER observations
-        are real-time farm measurements.
+    10. Keep explanations practical and clear.
     """
 
     try:
@@ -440,8 +590,11 @@ def ask_bumi(farm: FarmQuestion):
                 instructions
                 + "\n\nFarmer question:\n"
                 + farm.question
-                + "\n\nNASA evidence and farm inputs:\n"
-                + str(evidence)
+                + "\n\nEnvironmental evidence:\n"
+                + json.dumps(
+                    evidence,
+                    ensure_ascii=False
+                )
             )
         )
 
@@ -462,69 +615,23 @@ def ask_bumi(farm: FarmQuestion):
         raise HTTPException(
             status_code=503,
             detail=(
-                "Gemini is currently unavailable. "
+                "Gemini is temporarily unavailable. "
                 "Please try again later."
             )
         ) from error
 
     return {
         "answer": answer,
-        "evidence": nasa,
-        "farm_context": {
-            "latitude": farm.latitude,
-            "longitude": farm.longitude,
-            "drainage": farm.drainage,
-            "soil_ph": farm.soil_ph
-        }
+        "evidence": nasa
     }
 
 
 # ============================================
-# HISTORICAL NASA CLIMATE ENDPOINT
-# ============================================
-
-@app.get("/climate/history")
-def climate_history(
-    latitude: float = Query(default=DEFAULT_LATITUDE, ge=-90, le=90),
-    longitude: float = Query(default=DEFAULT_LONGITUDE, ge=-180, le=180)
-):
-    check_location(latitude, longitude)
-    try:
-        return get_historical_climate(latitude, longitude)
-    except (requests.RequestException, ValueError, KeyError, TypeError) as error:
-        logger.warning("Historical NASA retrieval failed: %s", type(error).__name__)
-        raise HTTPException(
-            status_code=503,
-            detail="Historical NASA climate data are currently unavailable."
-        ) from error
-
-
-# ============================================
-# CROP AND ROTATION RECOMMENDATIONS
-# ============================================
-
-@app.get("/recommendations")
-def recommendations(
-    latitude: float = Query(default=DEFAULT_LATITUDE, ge=-90, le=90),
-    longitude: float = Query(default=DEFAULT_LONGITUDE, ge=-180, le=180)
-):
-    check_location(latitude, longitude)
-    try:
-        history = get_historical_climate(latitude, longitude)
-        return build_recommendations(latitude, longitude, history)
-    except (requests.RequestException, ValueError, KeyError, TypeError) as error:
-        logger.warning("Recommendations failed: %s", type(error).__name__)
-        raise HTTPException(status_code=503, detail="Climate-based recommendations are temporarily unavailable.") from error
-
-
-# ============================================
-# 9. WEBSITE HOSTING
+# 11. WEBSITE HOSTING
 # ============================================
 
 STATIC_DIR = BASE_DIR / "static"
 
-# The static folder must exist and contain
-# the website's index.html.
 if STATIC_DIR.is_dir():
 
     app.mount(
@@ -550,5 +657,5 @@ else:
 
     logger.warning(
         "Static folder not found. "
-        "Website route will be unavailable."
+        "Website route is unavailable."
     )
