@@ -1,17 +1,24 @@
 
 """
-BUMI SHIFT — Historical NASA Climate Engine
-HANOVA | Sarawak pilot
+BUMI SHIFT 5.0 — NASA Historical Climate Engine
+HANOVA | Sarawak, Malaysia
 
-Source: NASA POWER Daily Point API
-Uses the last 10 complete calendar years.
+Source:
+NASA POWER Daily Point API
 
-This module analyzes historical climate.
-It does NOT predict crop yield or soil health.
+Purpose:
+- Retrieve 10 complete calendar years of climate data
+- Calculate monthly and annual climate summaries
+- Identify incomplete observations
+- Prepare environmental evidence for crop screening
+
+Historical climate screening is not a weather
+forecast or a validated crop-yield prediction.
 """
 
 import math
-from datetime import date, datetime
+from calendar import monthrange
+from datetime import date
 from statistics import mean
 
 import requests
@@ -37,15 +44,15 @@ PARAMETER_INFO = {
         "unit": "mm/day"
     },
     "T2M": {
-        "name": "Mean air temperature",
+        "name": "Mean temperature",
         "unit": "deg C"
     },
     "T2M_MAX": {
-        "name": "Maximum air temperature",
+        "name": "Maximum temperature",
         "unit": "deg C"
     },
     "T2M_MIN": {
-        "name": "Minimum air temperature",
+        "name": "Minimum temperature",
         "unit": "deg C"
     },
     "RH2M": {
@@ -53,11 +60,15 @@ PARAMETER_INFO = {
         "unit": "%"
     },
     "ALLSKY_SFC_SW_DWN": {
-        "name": "Daily solar irradiation",
+        "name": "Solar irradiation",
         "unit": "kWh/m2/day"
     }
 }
 
+
+# ============================================
+# 1. DATA VALIDATION
+# ============================================
 
 def valid_number(value):
     return (
@@ -68,15 +79,18 @@ def valid_number(value):
     )
 
 
-def average(values):
-    return round(mean(values), 2) if values else None
+def safe_average(values):
+    if not values:
+        return None
 
+    return round(mean(values), 2)
+
+
+# ============================================
+# 2. NASA DATA RETRIEVAL
+# ============================================
 
 def get_historical_climate(latitude, longitude):
-    """
-    Retrieve historical NASA POWER observations
-    and calculate monthly and annual summaries.
-    """
 
     if not (
         -90 <= latitude <= 90
@@ -84,7 +98,7 @@ def get_historical_climate(latitude, longitude):
     ):
         raise ValueError("Invalid coordinates.")
 
-    # Exclude the current incomplete calendar year.
+    # Exclude the current incomplete year.
     end_year = date.today().year - 1
     start_year = end_year - 9
 
@@ -104,113 +118,171 @@ def get_historical_climate(latitude, longitude):
         params=params,
         timeout=120
     )
+
     response.raise_for_status()
 
     payload = response.json()
 
-    data = payload["properties"]["parameter"]
-
-    if not all(p in data for p in PARAMETERS):
-        raise ValueError(
-            "NASA response is missing required parameters."
-        )
-
-    # Store monthly observations.
-    monthly = {}
-
-    # Store annual observations.
-    annual = {}
+    parameter_data = payload[
+        "properties"
+    ]["parameter"]
 
     for parameter in PARAMETERS:
-        for day, value in data[parameter].items():
+        if parameter not in parameter_data:
+            raise ValueError(
+                f"Missing NASA parameter: {parameter}"
+            )
+
+    # ========================================
+    # 3. BUILD DAILY RECORDS
+    # ========================================
+
+    monthly_groups = {}
+    annual_groups = {}
+
+    for parameter in PARAMETERS:
+
+        for day, value in parameter_data[
+            parameter
+        ].items():
 
             if not valid_number(value):
                 continue
 
-            if parameter == "PRECTOTCORR" and value < 0:
+            if (
+                parameter == "PRECTOTCORR"
+                and value < 0
+            ):
                 continue
 
-            day_date = datetime.strptime(
-                day, "%Y%m%d"
-            ).date()
+            year = int(day[:4])
+            month = int(day[4:6])
 
-            month_key = day_date.strftime("%Y-%m")
-            year_key = str(day_date.year)
+            month_key = f"{year}-{month:02d}"
+            year_key = str(year)
 
-            monthly.setdefault(month_key, {})
-            monthly[month_key].setdefault(parameter, [])
-            monthly[month_key][parameter].append(value)
+            monthly_groups.setdefault(
+                month_key, {}
+            )
 
-            annual.setdefault(year_key, {})
-            annual[year_key].setdefault(parameter, [])
-            annual[year_key][parameter].append(value)
+            monthly_groups[
+                month_key
+            ].setdefault(parameter, []).append(value)
+
+            annual_groups.setdefault(
+                year_key, {}
+            )
+
+            annual_groups[
+                year_key
+            ].setdefault(parameter, []).append(value)
+
+    # ========================================
+    # 4. MONTHLY SUMMARIES
+    # ========================================
 
     monthly_results = []
 
-    for month_key in sorted(monthly):
-        values = monthly[month_key]
+    for month_key in sorted(monthly_groups):
 
-        rain_values = values.get("PRECTOTCORR", [])
+        values = monthly_groups[month_key]
+
+        year, month = map(
+            int,
+            month_key.split("-")
+        )
+
+        expected_days = monthrange(
+            year, month
+        )[1]
+
+        rainfall_values = values.get(
+            "PRECTOTCORR", []
+        )
+
+        complete_rainfall = (
+            len(rainfall_values) == expected_days
+        )
 
         monthly_results.append({
             "month": month_key,
             "rainfall_mm": (
-                round(sum(rain_values), 2)
-                if rain_values else None
+                round(sum(rainfall_values), 2)
+                if complete_rainfall
+                else None
             ),
-            "rainfall_valid_days": len(rain_values),
-            "temperature_c": average(
+            "rainfall_valid_days": len(
+                rainfall_values
+            ),
+            "rainfall_complete": complete_rainfall,
+            "temperature_c": safe_average(
                 values.get("T2M", [])
             ),
-            "maximum_temperature_c": average(
+            "maximum_temperature_c": safe_average(
                 values.get("T2M_MAX", [])
             ),
-            "minimum_temperature_c": average(
+            "minimum_temperature_c": safe_average(
                 values.get("T2M_MIN", [])
             ),
-            "humidity_percent": average(
+            "humidity_percent": safe_average(
                 values.get("RH2M", [])
             ),
-            "solar_kwh_m2_day": average(
+            "solar_kwh_m2_day": safe_average(
                 values.get("ALLSKY_SFC_SW_DWN", [])
-            )
+            ),
+            "expected_days": expected_days
         })
+
+    # ========================================
+    # 5. ANNUAL SUMMARIES
+    # ========================================
 
     annual_results = []
 
-    for year_key in sorted(annual):
-        values = annual[year_key]
+    for year_key in sorted(annual_groups):
 
-        rain_values = values.get("PRECTOTCORR", [])
+        values = annual_groups[year_key]
+
+        year = int(year_key)
 
         expected_days = (
-            date(int(year_key) + 1, 1, 1)
-            - date(int(year_key), 1, 1)
+            date(year + 1, 1, 1)
+            - date(year, 1, 1)
         ).days
 
+        rainfall_values = values.get(
+            "PRECTOTCORR", []
+        )
+
         complete_rainfall = (
-            len(rain_values) == expected_days
+            len(rainfall_values) == expected_days
         )
 
         annual_results.append({
-            "year": int(year_key),
+            "year": year,
             "rainfall_mm": (
-                round(sum(rain_values), 2)
-                if complete_rainfall else None
+                round(sum(rainfall_values), 2)
+                if complete_rainfall
+                else None
             ),
-            "rainfall_valid_days": len(rain_values),
-            "expected_days": expected_days,
+            "rainfall_valid_days": len(
+                rainfall_values
+            ),
             "rainfall_complete": complete_rainfall,
-            "mean_temperature_c": average(
+            "mean_temperature_c": safe_average(
                 values.get("T2M", [])
             ),
-            "humidity_percent": average(
+            "humidity_percent": safe_average(
                 values.get("RH2M", [])
             ),
-            "solar_kwh_m2_day": average(
+            "solar_kwh_m2_day": safe_average(
                 values.get("ALLSKY_SFC_SW_DWN", [])
             )
         })
+
+    # ========================================
+    # 6. CLIMATE SUMMARY
+    # ========================================
 
     complete_years = [
         row for row in annual_results
@@ -237,11 +309,11 @@ def get_historical_climate(latitude, longitude):
         "end_year": end_year,
         "parameters": PARAMETER_INFO,
         "summary": {
-            "mean_annual_rainfall_mm": average(
-                rainfall_totals
+            "mean_annual_rainfall_mm": (
+                safe_average(rainfall_totals)
             ),
-            "mean_temperature_c": average(
-                temperature_values
+            "mean_temperature_c": (
+                safe_average(temperature_values)
             ),
             "complete_rainfall_years": len(
                 complete_years
@@ -252,10 +324,10 @@ def get_historical_climate(latitude, longitude):
         "annual": annual_results,
         "limitations": [
             "NASA POWER values are gridded estimates.",
-            "They are not measurements at individual farms.",
-            "Missing rainfall days invalidate annual totals.",
-            "Temperature means may use incomplete records.",
-            "Historical observations are not future forecasts.",
-            "Crop suitability requires crop-specific evidence."
+            "Historical observations are not forecasts.",
+            "Incomplete rainfall periods are excluded.",
+            "Some temperature means may use incomplete records.",
+            "Farm-level soil conditions are not measured.",
+            "Crop-specific suitability requires additional evidence."
         ]
     }
