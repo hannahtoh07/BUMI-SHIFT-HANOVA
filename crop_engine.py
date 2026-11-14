@@ -1,564 +1,524 @@
 
 """
-BUMI SHIFT 5.0
-Sarawak Crop Intelligence Engine
-Developed by HANOVA
+BUMI SHIFT 5.0 — Crop Intelligence Engine
+HANOVA | Sarawak, Malaysia
 
-Purpose:
-- Generate locally relevant crop candidates
-- Explore annual crop rotation sequences
-- Suggest practical management activities
-- Interpret available NASA climate indicators
-- Identify important missing evidence
+Compatible with:
+backend.py
+climate_engine.py
+static/index.html
 
-This is an exploratory decision-support engine.
-It does not predict crop yield, profit, or measured
-soil-health improvement.
+IMPORTANT:
+Crop thresholds are provisional prototype assumptions.
+Scores are climate screening indices, not predictions
+of crop success, yield, profit or soil improvement.
 """
 
 from datetime import date
-from typing import Optional
+from calendar import monthrange
+from statistics import mean
 
 
-# ==================================================
-# 1. CROP LIBRARY
-# ==================================================
+# ============================================
+# 1. SARAWAK CROP CANDIDATES
+# ============================================
 
-# Crop categories and broad agronomic characteristics.
-# Numerical suitability thresholds will be added
-# only from documented crop-specific references.
+# temp: monthly mean temperature (C)
+# rain: monthly precipitation total (mm)
+# months: approximate growing duration
+#
+# Numerical ranges below are NOT verified FAO
+# requirements. They are prototype assumptions.
 
 CROPS = {
     "rice": {
         "name": "Rice",
-        "scientific_name": "Oryza sativa",
         "family": "Poaceae",
-        "category": "annual",
-        "rotation_role": "cereal",
-        "water_note": (
-            "Water requirements depend on the rice "
-            "production system and cultivar."
-        ),
-        "soil_health_role": (
-            "Rice residues can contribute organic "
-            "material when appropriately managed."
-        ),
-        "activities": [
-            "Review field water management.",
-            "Monitor drainage and standing water.",
-            "Consider residue retention where appropriate.",
-            "Plan the next crop after harvest."
-        ]
+        "kind": "annual",
+        "months": 4,
+        "temp": (22, 34),
+        "rain": (130, 450)
     },
-
     "maize": {
         "name": "Maize",
-        "scientific_name": "Zea mays",
         "family": "Poaceae",
-        "category": "annual",
-        "rotation_role": "cereal",
-        "water_note": (
-            "Moisture availability during crop growth "
-            "is important."
-        ),
-        "soil_health_role": (
-            "Crop residues may provide soil cover "
-            "when retained."
-        ),
-        "activities": [
-            "Monitor soil moisture.",
-            "Maintain suitable drainage.",
-            "Consider residue management.",
-            "Review nutrient requirements."
-        ]
+        "kind": "annual",
+        "months": 4,
+        "temp": (20, 33),
+        "rain": (65, 240)
     },
-
     "mung_bean": {
         "name": "Mung Bean",
-        "scientific_name": "Vigna radiata",
         "family": "Fabaceae",
-        "category": "annual",
-        "rotation_role": "legume",
-        "water_note": (
-            "Poor drainage and waterlogging can "
-            "limit establishment."
-        ),
-        "soil_health_role": (
-            "A legume rotation may support nitrogen "
-            "management when effective nodulation "
-            "and appropriate residue management occur."
-        ),
-        "activities": [
-            "Check field drainage before planting.",
-            "Consider appropriate inoculation where needed.",
-            "Monitor crop establishment.",
-            "Plan residue management after harvest."
-        ]
+        "kind": "annual",
+        "months": 3,
+        "temp": (23, 33),
+        "rain": (45, 180)
     },
-
     "groundnut": {
         "name": "Groundnut",
-        "scientific_name": "Arachis hypogaea",
         "family": "Fabaceae",
-        "category": "annual",
-        "rotation_role": "legume",
-        "water_note": (
-            "Good drainage is important for "
-            "successful production."
-        ),
-        "soil_health_role": (
-            "Can diversify a cereal-based rotation "
-            "and potentially contribute to nitrogen cycling."
-        ),
-        "activities": [
-            "Assess drainage and soil conditions.",
-            "Monitor moisture during establishment.",
-            "Review nutrient and nodulation requirements.",
-            "Manage residues after harvest."
-        ]
+        "kind": "annual",
+        "months": 4,
+        "temp": (22, 32),
+        "rain": (55, 220)
     },
-
     "soybean": {
         "name": "Soybean",
-        "scientific_name": "Glycine max",
         "family": "Fabaceae",
-        "category": "annual",
-        "rotation_role": "legume",
-        "water_note": (
-            "Adequate moisture and drainage are important."
-        ),
-        "soil_health_role": (
-            "Can diversify crop families and contribute "
-            "to biological nitrogen fixation under "
-            "suitable conditions."
-        ),
-        "activities": [
-            "Review locally adapted varieties.",
-            "Check drainage conditions.",
-            "Monitor crop establishment.",
-            "Consider residue and nutrient management."
-        ]
+        "kind": "annual",
+        "months": 4,
+        "temp": (20, 32),
+        "rain": (65, 240)
     },
-
     "sweet_potato": {
         "name": "Sweet Potato",
-        "scientific_name": "Ipomoea batatas",
         "family": "Convolvulaceae",
-        "category": "annual",
-        "rotation_role": "root_crop",
-        "water_note": (
-            "Drainage and soil conditions influence "
-            "root development."
-        ),
-        "soil_health_role": (
-            "Ground-covering growth may help reduce "
-            "exposed soil during cultivation."
-        ),
-        "activities": [
-            "Check soil structure and drainage.",
-            "Maintain suitable soil cover.",
-            "Monitor water availability.",
-            "Plan harvesting and residue management."
-        ]
+        "kind": "annual",
+        "months": 4,
+        "temp": (21, 34),
+        "rain": (55, 260)
     },
-
     "cassava": {
         "name": "Cassava",
-        "scientific_name": "Manihot esculenta",
         "family": "Euphorbiaceae",
-        "category": "long_duration",
-        "rotation_role": "root_crop",
-        "water_note": (
-            "Water availability and drainage should "
-            "be assessed during establishment."
-        ),
-        "soil_health_role": (
-            "Soil-cover management is important, "
-            "especially during early establishment."
-        ),
-        "activities": [
-            "Review the longer growing period.",
-            "Maintain soil cover where possible.",
-            "Monitor erosion exposure.",
-            "Plan nutrient replacement after harvest."
-        ]
+        "kind": "long_duration",
+        "months": 10,
+        "temp": (21, 34),
+        "rain": (65, 280)
     },
-
     "pineapple": {
         "name": "Pineapple",
-        "scientific_name": "Ananas comosus",
         "family": "Bromeliaceae",
-        "category": "long_duration",
-        "rotation_role": "establishment",
-        "water_note": (
-            "Drainage and waterlogging exposure "
-            "require attention."
-        ),
-        "soil_health_role": (
-            "Mulching and ground-cover management "
-            "may help protect exposed soil."
-        ),
-        "activities": [
-            "Assess drainage suitability.",
-            "Review planting material and establishment.",
-            "Consider mulching.",
-            "Monitor soil exposure and erosion."
-        ]
+        "kind": "long_duration",
+        "months": 16,
+        "temp": (20, 33),
+        "rain": (65, 300)
     },
-
     "banana": {
         "name": "Banana",
-        "scientific_name": "Musa spp.",
         "family": "Musaceae",
-        "category": "perennial",
-        "rotation_role": "perennial_management",
-        "water_note": (
-            "Requires appropriate water availability "
-            "and drainage."
-        ),
-        "soil_health_role": (
-            "Mulch and plant residues can contribute "
-            "to soil-cover management."
-        ),
-        "activities": [
-            "Assess drainage and water availability.",
-            "Maintain appropriate mulch.",
-            "Monitor plant health.",
-            "Plan nutrient and residue management."
-        ]
+        "kind": "perennial",
+        "months": 12,
+        "temp": (23, 34),
+        "rain": (110, 380)
     },
-
     "coconut": {
         "name": "Coconut",
-        "scientific_name": "Cocos nucifera",
         "family": "Arecaceae",
-        "category": "perennial",
-        "rotation_role": "intercropping",
-        "water_note": (
-            "Site water conditions influence "
-            "long-term establishment."
-        ),
-        "soil_health_role": (
-            "Suitable intercrops and ground cover "
-            "may contribute to soil protection."
-        ),
-        "activities": [
-            "Assess long-term site suitability.",
-            "Review possible intercrops.",
-            "Maintain soil cover.",
-            "Monitor water and nutrient availability."
-        ]
+        "kind": "perennial",
+        "months": 36,
+        "temp": (23, 34),
+        "rain": (100, 400)
     },
-
     "durian": {
         "name": "Durian",
-        "scientific_name": "Durio zibethinus",
         "family": "Malvaceae",
-        "category": "perennial",
-        "rotation_role": "orchard_management",
-        "water_note": (
-            "Drainage and waterlogging exposure "
-            "are important considerations."
-        ),
-        "soil_health_role": (
-            "Orchard ground cover and mulch may "
-            "help protect soil."
-        ),
-        "activities": [
-            "Assess site drainage.",
-            "Plan orchard ground-cover management.",
-            "Review long-term water requirements.",
-            "Monitor soil and plant health."
-        ]
+        "kind": "perennial",
+        "months": 60,
+        "temp": (22, 33),
+        "rain": (120, 430)
     }
 }
 
 
-# ==================================================
-# 2. CROP DATA
-# ==================================================
+# ============================================
+# 2. CLIMATE SCREENING FUNCTION
+# ============================================
 
-def get_crop_library():
-    return [
-        {
-            "id": crop_id,
-            **crop
-        }
-        for crop_id, crop in CROPS.items()
-    ]
+def closeness(value, low, high):
 
+    if value is None:
+        return None
 
-# ==================================================
-# 3. CLIMATE INTERPRETATION
-# ==================================================
+    if low <= value <= high:
+        return 1.0
 
-def interpret_climate(climate):
-    """
-    Interpret actual NASA climate summary values.
+    margin = max((high - low) * 0.5, 1.0)
 
-    This does not apply crop-specific thresholds
-    or claim to measure field-level soil conditions.
-    """
-
-    summary = climate.get("summary", {})
-
-    rainfall = summary.get(
-        "mean_annual_rainfall_mm"
+    distance = (
+        low - value
+        if value < low
+        else value - high
     )
 
-    temperature = summary.get(
-        "mean_temperature_c"
+    return max(
+        0.0,
+        1.0 - distance / margin
     )
 
-    observations = []
 
-    if rainfall is not None:
-        observations.append({
-            "indicator": "Historical rainfall",
-            "value": rainfall,
-            "unit": "mm/year",
-            "interpretation": (
-                "Use the monthly rainfall distribution "
-                "to investigate crop planting windows."
+# ============================================
+# 3. HISTORICAL MONTHLY CLIMATE
+# ============================================
+
+def month_climatology(history):
+
+    grouped = {
+        month: {"rain": [], "temp": []}
+        for month in range(1, 13)
+    }
+
+    for row in history.get("monthly", []):
+
+        month_text = str(row["month"])
+
+        if "-" in month_text:
+            year, month = map(
+                int, month_text.split("-")
             )
-        })
+        else:
+            year = None
+            month = int(month_text)
 
-    if temperature is not None:
-        observations.append({
-            "indicator": "Historical temperature",
-            "value": temperature,
-            "unit": "deg C",
-            "interpretation": (
-                "Compare temperature patterns with "
-                "crop-specific requirements before "
-                "determining suitability."
+        if month not in grouped:
+            continue
+
+        rainfall = row.get("rainfall_mm")
+        temperature = row.get(
+            "temperature_c",
+            row.get("t2m")
+        )
+
+        rain_complete = row.get(
+            "rainfall_complete"
+        )
+
+        if rain_complete is None and year:
+            valid_days = row.get(
+                "rainfall_valid_days"
             )
-        })
+            rain_complete = (
+                valid_days == monthrange(
+                    year, month
+                )[1]
+                if valid_days is not None
+                else False
+            )
 
-    return observations
+        if rainfall is not None and rain_complete:
+            grouped[month]["rain"].append(
+                rainfall
+            )
 
-
-# ==================================================
-# 4. ROTATION CANDIDATES
-# ==================================================
-
-def generate_rotation_candidates():
-    """
-    Generate illustrative annual crop sequences.
-
-    These are planning candidates, not validated
-    farm-specific recommendations.
-    """
-
-    sequences = [
-        {
-            "id": "rice_mung_rice",
-            "name": "Rice - Mung Bean - Rice",
-            "crops": [
-                "rice",
-                "mung_bean",
-                "rice"
-            ]
-        },
-        {
-            "id": "rice_groundnut_rice",
-            "name": "Rice - Groundnut - Rice",
-            "crops": [
-                "rice",
-                "groundnut",
-                "rice"
-            ]
-        },
-        {
-            "id": "rice_maize_rice",
-            "name": "Rice - Maize - Rice",
-            "crops": [
-                "rice",
-                "maize",
-                "rice"
-            ]
-        },
-        {
-            "id": "maize_mung_maize",
-            "name": "Maize - Mung Bean - Maize",
-            "crops": [
-                "maize",
-                "mung_bean",
-                "maize"
-            ]
-        },
-        {
-            "id": "maize_groundnut_maize",
-            "name": "Maize - Groundnut - Maize",
-            "crops": [
-                "maize",
-                "groundnut",
-                "maize"
-            ]
-        }
-    ]
+        if temperature is not None:
+            grouped[month]["temp"].append(
+                temperature
+            )
 
     results = []
 
-    for sequence in sequences:
+    for month in range(1, 13):
 
-        crop_ids = sequence["crops"]
-
-        families = {
-            CROPS[crop_id]["family"]
-            for crop_id in crop_ids
-        }
-
-        includes_legume = any(
-            CROPS[crop_id]["rotation_role"]
-            == "legume"
-            for crop_id in crop_ids
-        )
+        rain = grouped[month]["rain"]
+        temp = grouped[month]["temp"]
 
         results.append({
-            **sequence,
-            "crop_names": [
-                CROPS[crop_id]["name"]
-                for crop_id in crop_ids
-            ],
-            "crop_family_count": len(families),
-            "includes_legume": includes_legume,
-            "potential_benefits": [
-                "Crop-family diversification"
-                if len(families) > 1
-                else "Single crop-family sequence",
-                (
-                    "Potential biological nitrogen "
-                    "fixation under suitable conditions"
-                    if includes_legume
-                    else "No legume included"
-                )
-            ],
-            "status": "Requires local feasibility screening"
+            "month": month,
+            "rainfall_mm": (
+                round(mean(rain), 2)
+                if rain else None
+            ),
+            "temperature_c": (
+                round(mean(temp), 2)
+                if temp else None
+            ),
+            "rainfall_years": len(rain),
+            "temperature_years": len(temp)
         })
 
     return results
 
 
-# ==================================================
-# 5. ACTIVITY SUGGESTIONS
-# ==================================================
+# ============================================
+# 4. CROP COMPATIBILITY SCREENING
+# ============================================
 
-def generate_activities():
-    """
-    General agricultural planning activities.
+def screen_crop(crop_id, monthly):
 
-    These are not automatically validated
-    field-specific prescriptions.
-    """
+    crop = CROPS[crop_id]
 
-    return [
+    # For perennial crops, this examines only
+    # a representative 12-month climate cycle.
+    duration = min(crop["months"], 12)
+
+    windows = []
+
+    for start in range(12):
+
+        scores = []
+        valid = True
+
+        for offset in range(duration):
+
+            month_index = (start + offset) % 12
+            row = monthly[month_index]
+
+            rain_score = closeness(
+                row["rainfall_mm"],
+                *crop["rain"]
+            )
+
+            temp_score = closeness(
+                row["temperature_c"],
+                *crop["temp"]
+            )
+
+            if (
+                rain_score is None
+                or temp_score is None
+            ):
+                valid = False
+                break
+
+            scores.append(
+                0.55 * rain_score
+                + 0.45 * temp_score
+            )
+
+        if valid and scores:
+
+            windows.append({
+                "start_month": start + 1,
+                "climate_score": round(
+                    mean(scores) * 100, 1
+                )
+            })
+
+    windows.sort(
+        key=lambda item: item["climate_score"],
+        reverse=True
+    )
+
+    best = windows[0] if windows else None
+
+    return {
+        "id": crop_id,
+        "name": crop["name"],
+        "family": crop["family"],
+        "kind": crop["kind"],
+        "approx_duration_months": crop["months"],
+        "climate_score": (
+            best["climate_score"]
+            if best else None
+        ),
+        "suggested_start_month": (
+            best["start_month"]
+            if best else None
+        ),
+        "alternative_windows": windows[:3],
+        "status": (
+            "provisional climate screening"
+            if best
+            else "insufficient climate data"
+        ),
+        "thresholds": {
+            "monthly_rainfall_mm": crop["rain"],
+            "mean_temperature_c": crop["temp"]
+        }
+    }
+
+
+# ============================================
+# 5. ROTATION COMPARISON
+# ============================================
+
+ROTATION_SEQUENCES = [
+    ["rice", "mung_bean", "rice"],
+    ["rice", "groundnut", "rice"],
+    ["rice", "maize", "rice"],
+    ["maize", "soybean", "maize"],
+    ["maize", "sweet_potato", "mung_bean"]
+]
+
+
+def evaluate_rotations(crop_results):
+
+    by_id = {
+        crop["id"]: crop
+        for crop in crop_results
+    }
+
+    rotations = []
+
+    for sequence in ROTATION_SEQUENCES:
+
+        scores = [
+            by_id[crop_id]["climate_score"]
+            for crop_id in sequence
+        ]
+
+        if any(score is None for score in scores):
+            continue
+
+        climate_component = mean(scores)
+
+        families = {
+            CROPS[crop_id]["family"]
+            for crop_id in sequence
+        }
+
+        diversity_component = (
+            len(families) / len(sequence)
+        ) * 100
+
+        includes_legume = any(
+            CROPS[crop_id]["family"] == "Fabaceae"
+            for crop_id in sequence
+        )
+
+        # Experimental index.
+        # NOT a prediction of soil-health change.
+        screening_index = (
+            0.8 * climate_component
+            + 0.2 * diversity_component
+        )
+
+        rotations.append({
+            "id": "-".join(sequence),
+            "crop_ids": sequence,
+            "crops": [
+                CROPS[crop_id]["name"]
+                for crop_id in sequence
+            ],
+            "screening_index": round(
+                screening_index, 1
+            ),
+            "climate_component": round(
+                climate_component, 1
+            ),
+            "diversity_component": round(
+                diversity_component, 1
+            ),
+            "includes_legume": includes_legume,
+            "approx_total_months": sum(
+                CROPS[crop_id]["months"]
+                for crop_id in sequence
+            ),
+            "note": (
+                "Experimental comparison only. "
+                "Continuous planting-calendar, "
+                "soil and economic feasibility "
+                "are not yet validated."
+            )
+        })
+
+    rotations.sort(
+        key=lambda item: item["screening_index"],
+        reverse=True
+    )
+
+    return rotations
+
+
+# ============================================
+# 6. FARMING ACTIVITY SUGGESTIONS
+# ============================================
+
+def generate_activities(rotations):
+
+    activities = [
         {
             "category": "Planting",
-            "title": "Review the planting window",
-            "description": (
-                "Use historical rainfall and "
-                "temperature patterns to identify "
-                "periods worth investigating."
+            "title": "Review planting windows",
+            "reason": (
+                "Compare historical rainfall and "
+                "temperature patterns with crop needs."
             )
         },
         {
             "category": "Soil Health",
             "title": "Maintain soil cover",
-            "description": (
-                "Consider appropriate cover crops, "
-                "mulch or crop residues to reduce "
-                "periods of exposed soil."
-            )
-        },
-        {
-            "category": "Crop Rotation",
-            "title": "Diversify crop families",
-            "description": (
-                "Investigate compatible crop "
-                "sequences that avoid repeated "
-                "cultivation of the same crop family."
+            "reason": (
+                "Appropriate mulch and crop residues "
+                "may reduce exposed-soil periods."
             )
         },
         {
             "category": "Water Management",
-            "title": "Review drainage and water access",
-            "description": (
-                "Check field conditions before "
-                "adopting crops sensitive to "
-                "waterlogging or water shortages."
+            "title": "Check drainage conditions",
+            "reason": (
+                "Regional rainfall does not establish "
+                "field-level drainage performance."
             )
         },
         {
             "category": "Nutrient Management",
             "title": "Plan residue management",
-            "description": (
-                "Consider how harvest residues "
-                "will be retained, removed or "
-                "incorporated into the soil."
+            "reason": (
+                "Residue handling affects nutrient "
+                "cycling and soil organic matter."
             )
         }
     ]
 
+    if rotations and rotations[0]["includes_legume"]:
 
-# ==================================================
-# 6. COMPLETE PRELIMINARY ASSESSMENT
-# ==================================================
+        activities.append({
+            "category": "Crop Rotation",
+            "title": "Explore legume integration",
+            "reason": (
+                "Legumes may support nitrogen "
+                "management when nodulation and "
+                "residue practices are appropriate."
+            )
+        })
 
-def build_crop_assessment(
+    return activities
+
+
+# ============================================
+# 7. MAIN BACKEND FUNCTION
+# ============================================
+
+def build_recommendations(
     latitude,
     longitude,
-    climate
+    history
 ):
-    """
-    Combine NASA climate summaries with
-    the preliminary crop library.
 
-    No fabricated suitability percentages.
-    No fabricated yield or profit estimates.
-    """
+    monthly = month_climatology(history)
+
+    crop_results = [
+        screen_crop(crop_id, monthly)
+        for crop_id in CROPS
+    ]
+
+    crop_results.sort(
+        key=lambda item: (
+            item["climate_score"]
+            if item["climate_score"] is not None
+            else -1
+        ),
+        reverse=True
+    )
+
+    rotations = evaluate_rotations(
+        crop_results
+    )
 
     return {
         "region": "Sarawak, Malaysia",
         "latitude": latitude,
         "longitude": longitude,
         "generated_on": date.today().isoformat(),
-        "assessment_type": (
-            "Preliminary regional crop planning"
-        ),
-        "climate_source": climate.get("source"),
-        "climate_period": {
-            "start_year": climate.get("start_year"),
-            "end_year": climate.get("end_year")
-        },
-        "climate_indicators": interpret_climate(
-            climate
-        ),
-        "crop_candidates": get_crop_library(),
-        "rotation_candidates": (
-            generate_rotation_candidates()
-        ),
+        "climate_period": [
+            history.get("start_year"),
+            history.get("end_year")
+        ],
+        "source": history.get("source"),
+        "monthly_climatology": monthly,
+        "crop_recommendations": crop_results,
+        "rotation_options": rotations,
         "suggested_activities": (
-            generate_activities()
-        ),
-        "soil_health_note": (
-            "Crop diversification and soil-cover "
-            "management may offer benefits, but "
-            "actual soil-health improvements "
-            "cannot be quantified without "
-            "additional field evidence."
-        ),
-        "profit_note": (
-            "Profit cannot be estimated reliably "
-            "without local prices, input costs "
-            "and yield information."
+            generate_activities(rotations)
         ),
         "limitations": [
-            "NASA climate data are gridded estimates.",
-            "Crop candidates are not ranked by suitability.",
-            "No field-level soil test is available.",
-            "Planting calendars require local verification.",
-            "Rotation benefits depend on management.",
-            "No crop yield prediction is provided."
+            "Crop thresholds are prototype assumptions.",
+            "Scores are not probabilities of success.",
+            "Historical climate is not a forecast.",
+            "Rotation calendar feasibility is not validated.",
+            "Soil conditions are not measured at field scale.",
+            "Yield, profit and soil improvement are not predicted."
         ]
     }
