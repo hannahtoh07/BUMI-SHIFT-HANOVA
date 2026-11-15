@@ -1,27 +1,27 @@
 
 /*
- BUMI SHIFT 7.0
+ BUMI SHIFT 7.1
  Interactive 3D Farming SHIFT Planner
  HANOVA | Sarawak, Malaysia
 
+ Compatible with BUMI SHIFT 7.1 index.html.
+
  Features:
- - 11 recognizable crop models
- - Baseline versus proposed SHIFT
- - Rotation stage visualization
- - Paddy, raised beds, upland rows and orchards
- - Farmer-reported drainage scenarios
- - Optional soil-cover management
- - Clickable field-management explanations
- - NASA rainfall evidence integration
- - Orbit, zoom and camera reset
+ - 11 distinct crop models
+ - Current farm vs proposed SHIFT
+ - Crop rotation stage switching
+ - Visible crop development timeline
+ - Raised beds, paddy water, orchard spacing
+ - Visible soil-cover management
+ - Farmer-reported drainage interpretation
+ - Clickable field-management hotspots
+ - NASA historical climate context
+ - Camera orbit, zoom and reset
 
- This is an illustrative field-management planner.
- It does not simulate crop growth or soil hydrology.
-
- Compatible with the existing index.html:
- BUMIFarm3D.showCrop(id)
- BUMIFarm3D.resize()
- BUMIFarm3D.resetCamera()
+ SCIENTIFIC DISCLOSURE:
+ This is an illustrative 3D planning tool.
+ It is not a digital twin, growth simulation,
+ measured farm reconstruction, or prediction.
 */
 
 import * as THREE from "three";
@@ -30,117 +30,115 @@ import { OrbitControls } from
 
 const host = document.getElementById("farm3d");
 
-if (host) {
-  initializeFarm(host);
-}
+if (host) initializeFarm(host);
 
 function initializeFarm(host) {
 
   // ==========================================
-  // 1. CROP INFORMATION
+  // 1. CROP LIBRARY
   // ==========================================
 
   const CROPS = {
     rice: {
       name: "Rice",
       system: "paddy",
-      spacing: 0.65,
       duration: 4,
-      explanation:
-        "Paddy rice may use controlled standing water, bunds and irrigation channels."
+      spacing: 0.65,
+      matureHeight: 0.75,
+      info: "Managed paddy water and bunds may be used."
     },
     maize: {
       name: "Maize",
       system: "rows",
-      spacing: 1.2,
       duration: 4,
-      explanation:
-        "Maize is planted in rows. Drainage and adequate moisture during flowering are important."
+      spacing: 1.25,
+      matureHeight: 1.8,
+      info: "Rows, drainage and moisture during flowering matter."
     },
     mung_bean: {
       name: "Mung Bean",
       system: "rows",
-      spacing: 0.85,
       duration: 3,
-      explanation:
-        "Mung bean is a short-duration legume. Check drainage, nodulation and residue management."
+      spacing: 0.9,
+      matureHeight: 0.7,
+      info: "Legume establishment and nodulation require review."
     },
     groundnut: {
       name: "Groundnut",
       system: "raised",
-      spacing: 0.9,
       duration: 4,
-      explanation:
-        "Groundnut needs suitable soil conditions for pegging and pod development."
+      spacing: 0.95,
+      matureHeight: 0.45,
+      info: "Suitable soil structure supports pegging and pods."
     },
     soybean: {
       name: "Soybean",
       system: "rows",
-      spacing: 0.95,
       duration: 4,
-      explanation:
-        "Soybean can diversify crop families. Nitrogen benefits depend on effective nodulation."
+      spacing: 1.0,
+      matureHeight: 1.1,
+      info: "Crop-family diversification and nodulation matter."
     },
     sweet_potato: {
       name: "Sweet Potato",
       system: "raised",
-      spacing: 0.95,
       duration: 4,
-      explanation:
-        "Raised beds can support storage-root development and drainage."
+      spacing: 1.0,
+      matureHeight: 0.3,
+      info: "Raised beds may improve field drainage."
     },
     cassava: {
       name: "Cassava",
       system: "raised",
-      spacing: 1.55,
       duration: 10,
-      explanation:
-        "Cassava requires longer field occupation, suitable drainage and soil-conservation planning."
+      spacing: 1.6,
+      matureHeight: 1.7,
+      info: "Longer field occupation and erosion control matter."
     },
     pineapple: {
       name: "Pineapple",
       system: "raised",
-      spacing: 1.25,
       duration: 16,
-      explanation:
-        "Pineapple requires longer-term field planning, drainage and suitable planting arrangements."
+      spacing: 1.25,
+      matureHeight: 0.95,
+      info: "Long-duration field planning and drainage matter."
     },
     banana: {
       name: "Banana",
       system: "plantation",
-      spacing: 3.0,
       duration: 12,
-      explanation:
-        "Banana cultivation requires drainage, wind protection and disease management."
+      spacing: 3.0,
+      matureHeight: 2.8,
+      info: "Wind exposure, drainage and disease management matter."
     },
     coconut: {
       name: "Coconut",
       system: "orchard",
-      spacing: 4.0,
       duration: 36,
-      explanation:
-        "Coconut is a long-term plantation decision requiring appropriate spacing and land commitment."
+      spacing: 4.0,
+      matureHeight: 4.3,
+      info: "This is a long-term plantation establishment scenario."
     },
     durian: {
       name: "Durian",
       system: "orchard",
-      spacing: 3.8,
       duration: 60,
-      explanation:
-        "Durian orchard establishment requires suitable root-zone drainage, spacing and long-term management."
+      spacing: 3.8,
+      matureHeight: 4.0,
+      info: "This is a long-term orchard establishment scenario."
     }
   };
 
   // ==========================================
-  // 2. SCENE SETUP
+  // 2. SCENE, CAMERA AND RENDERER
   // ==========================================
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color("#b7dff1");
-  scene.fog = new THREE.Fog("#b7dff1", 38, 90);
+  scene.background = new THREE.Color("#b9dfef");
+  scene.fog = new THREE.Fog("#b9dfef", 35, 85);
 
   const camera = new THREE.PerspectiveCamera(
-    43, 1, 0.1, 150
+    43, 1, 0.1, 120
   );
 
   camera.position.set(17, 17, 21);
@@ -155,7 +153,7 @@ function initializeFarm(host) {
   } catch (error) {
     console.error("BUMI SHIFT WebGL:", error);
     host.textContent =
-      "Interactive 3D requires WebGL support.";
+      "This visualization requires WebGL support.";
     return;
   }
 
@@ -167,7 +165,7 @@ function initializeFarm(host) {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.3;
+  renderer.toneMappingExposure = 1.25;
 
   renderer.domElement.style.width = "100%";
   renderer.domElement.style.height = "100%";
@@ -176,70 +174,73 @@ function initializeFarm(host) {
   host.prepend(renderer.domElement);
 
   const controls = new OrbitControls(
-    camera, renderer.domElement
+    camera,
+    renderer.domElement
   );
 
   controls.enableDamping = true;
   controls.target.set(0, 0.5, 0);
-  controls.minDistance = 8;
+  controls.minDistance = 7;
   controls.maxDistance = 48;
   controls.maxPolarAngle = Math.PI * 0.49;
 
   scene.add(new THREE.HemisphereLight(
-    0xffffff, 0x557b58, 2.4
+    0xffffff, 0x5d805b, 2.3
   ));
 
-  const sunlight = new THREE.DirectionalLight(
-    0xfff0d4, 2.8
+  const sun = new THREE.DirectionalLight(
+    0xfff1d6, 2.8
   );
 
-  sunlight.position.set(-9, 20, 12);
-  sunlight.castShadow = true;
-  sunlight.shadow.mapSize.set(1024, 1024);
-  sunlight.shadow.camera.left = -22;
-  sunlight.shadow.camera.right = 22;
-  sunlight.shadow.camera.top = 22;
-  sunlight.shadow.camera.bottom = -22;
-  scene.add(sunlight);
+  sun.position.set(-9, 20, 12);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(1024, 1024);
+  sun.shadow.camera.left = -22;
+  sun.shadow.camera.right = 22;
+  sun.shadow.camera.top = 22;
+  sun.shadow.camera.bottom = -22;
+  scene.add(sun);
 
   // ==========================================
   // 3. MATERIALS
   // ==========================================
 
-  function material(color, options = {}) {
+  function mat(color, extra = {}) {
     return new THREE.MeshStandardMaterial({
       color,
       roughness: 0.82,
-      ...options
+      ...extra
     });
   }
 
   const M = {
-    grass: material("#70ad65"),
-    soil: material("#916344"),
-    darkSoil: material("#60422e"),
-    raisedSoil: material("#ad7950"),
-    path: material("#e1c99c"),
-    green: material("#42964b"),
-    lightGreen: material("#83c966"),
-    darkGreen: material("#287446"),
-    bananaGreen: material("#52ae60"),
-    stem: material("#7e573d"),
-    paleStem: material("#8caf68"),
-    yellow: material("#edca5d"),
-    orange: material("#dfa147"),
-    purple: material("#8854a5"),
-    wall: material("#efdbbb"),
-    roof: material("#ae6c48"),
-    mulch: material("#c49a66"),
-    water: material("#44b9df", {
+    grass: mat("#72ad65"),
+    soil: mat("#936644"),
+    darkSoil: mat("#60412d"),
+    raised: mat("#ad7850"),
+    path: mat("#dec69a"),
+    green: mat("#459a4c"),
+    lightGreen: mat("#8bce66"),
+    darkGreen: mat("#287746"),
+    bananaGreen: mat("#53b263"),
+    paleStem: mat("#89ae6d"),
+    trunk: mat("#7b573e"),
+    grain: mat("#e8ca62"),
+    yellow: mat("#edc955"),
+    orange: mat("#dba04b"),
+    purple: mat("#8553a0"),
+    wall: mat("#e9d6b8"),
+    roof: mat("#b16f4d"),
+    mulch: mat("#edca76"),
+    residue: mat("#d7ae60"),
+    warning: mat("#f4a937", {
+      emissive: "#b15c00",
+      emissiveIntensity: 0.3
+    }),
+    water: mat("#4abce2", {
       roughness: 0.2,
       transparent: true,
       opacity: 0.72
-    }),
-    warning: material("#f3aa38", {
-      emissive: "#a35a00",
-      emissiveIntensity: 0.15
     })
   };
 
@@ -247,72 +248,82 @@ function initializeFarm(host) {
   // 4. GEOMETRY HELPERS
   // ==========================================
 
-  function mesh(parent, geometry, mat) {
-    const object = new THREE.Mesh(geometry, mat);
-    object.castShadow = true;
-    object.receiveShadow = true;
-    parent.add(object);
-    return object;
+  function mesh(parent, geometry, material) {
+    const obj = new THREE.Mesh(
+      geometry,
+      material
+    );
+
+    obj.castShadow = true;
+    obj.receiveShadow = true;
+    parent.add(obj);
+
+    return obj;
   }
 
   function box(
-    parent, w, h, d, mat,
+    parent, w, h, d, material,
     x = 0, y = 0, z = 0
   ) {
-    const object = mesh(
+    const obj = mesh(
       parent,
       new THREE.BoxGeometry(w, h, d),
-      mat
+      material
     );
-    object.position.set(x, y, z);
-    return object;
+    obj.position.set(x, y, z);
+    return obj;
   }
 
   function cylinder(
     parent, x, y, z,
-    height, radius, mat
+    height, radius, material
   ) {
-    const object = mesh(
+    const obj = mesh(
       parent,
       new THREE.CylinderGeometry(
-        radius * 0.8, radius, height, 7
+        radius * 0.8,
+        radius,
+        height,
+        7
       ),
-      mat
+      material
     );
-    object.position.set(x, y, z);
-    return object;
+    obj.position.set(x, y, z);
+    return obj;
   }
 
   function sphere(
     parent, x, y, z,
-    sx, sy, sz, mat
+    sx, sy, sz, material
   ) {
-    const object = mesh(
+    const obj = mesh(
       parent,
       new THREE.SphereGeometry(1, 9, 7),
-      mat
+      material
     );
-    object.position.set(x, y, z);
-    object.scale.set(sx, sy, sz);
-    return object;
+
+    obj.position.set(x, y, z);
+    obj.scale.set(sx, sy, sz);
+    return obj;
   }
 
   function leaf(
     parent, x, y, z,
-    length, width, angle, mat
+    length, width, angle, material
   ) {
-    const object = sphere(
+    const obj = sphere(
       parent, x, y, z,
-      width, 0.045, length, mat
+      width, 0.045, length,
+      material
     );
-    object.rotation.y = angle;
-    return object;
+    obj.rotation.y = angle;
+    return obj;
   }
 
   function clearGroup(group) {
-    group.traverse(object => {
-      if (object.isMesh) {
-        object.geometry.dispose();
+    group.traverse(obj => {
+      if (obj.isMesh) {
+        obj.geometry.dispose();
       }
     });
     group.clear();
@@ -333,11 +344,10 @@ function initializeFarm(host) {
   box(scene, 30, 0.65, 25, M.grass, 0, -0.65, 0);
   box(scene, 22, 0.3, 18, M.soil, 0, -0.16, 0);
 
-  // Central farm paths
   box(scene, 1.1, 0.12, 18, M.path, 0, 0.08, 0);
   box(scene, 22, 0.12, 1.0, M.path, 0, 0.08, 0);
 
-  // Permanent drainage channels
+  // Perimeter water-management channels
   box(scene, 0.8, 0.08, 18, M.water, -10.1, 0.1, 0);
   box(scene, 0.8, 0.08, 18, M.water, 10.1, 0.1, 0);
 
@@ -350,10 +360,20 @@ function initializeFarm(host) {
   roof.rotation.z = -0.12;
 
   function backgroundTree(x, z) {
-    cylinder(scene, x, 0.85, z, 1.7, 0.15, M.stem);
-    sphere(scene, x, 2, z, 0.8, 0.8, 0.8, M.darkGreen);
-    sphere(scene, x - 0.4, 1.8, z,
-      0.55, 0.5, 0.55, M.green);
+    cylinder(
+      scene, x, 0.85, z,
+      1.7, 0.15, M.trunk
+    );
+
+    sphere(
+      scene, x, 2, z,
+      0.8, 0.8, 0.8, M.darkGreen
+    );
+
+    sphere(
+      scene, x - 0.4, 1.8, z,
+      0.55, 0.5, 0.55, M.green
+    );
   }
 
   for (let i = 0; i < 5; i++) {
@@ -369,7 +389,7 @@ function initializeFarm(host) {
   ];
 
   // ==========================================
-  // 6. ELEVEN DISTINCT CROP MODELS
+  // 6. ELEVEN CROP MODELS
   // ==========================================
 
   function rice(p, x, z) {
@@ -379,70 +399,105 @@ function initializeFarm(host) {
       const dz = Math.sin(a);
 
       const stem = cylinder(
-        p, x + dx * 0.08, 0.32,
-        z + dz * 0.08, 0.62, 0.018, M.green
+        p,
+        x + dx * 0.08,
+        0.32,
+        z + dz * 0.08,
+        0.64,
+        0.018,
+        M.green
       );
+
       stem.rotation.z = dx * 0.2;
 
       const blade = sphere(
-        p, x + dx * 0.17, 0.46,
+        p,
+        x + dx * 0.17,
+        0.46,
         z + dz * 0.17,
-        0.04, 0.27, 0.04, M.lightGreen
+        0.04, 0.27, 0.04,
+        M.lightGreen
       );
+
       blade.rotation.z = dx * 0.45;
     }
 
     for (let i = 0; i < 4; i++) {
-      sphere(p, x + i * 0.04 - 0.06,
-        0.72, z, 0.035, 0.07, 0.035, M.yellow);
+      sphere(
+        p,
+        x + i * 0.04 - 0.06,
+        0.72,
+        z,
+        0.035, 0.07, 0.035,
+        M.grain
+      );
     }
   }
 
   function maize(p, x, z) {
-    cylinder(p, x, 0.85, z, 1.7, 0.07, M.green);
+    cylinder(
+      p, x, 0.85, z,
+      1.7, 0.07, M.green
+    );
 
     for (let i = 0; i < 7; i++) {
       const a = i * 2.4;
+
       const l = leaf(
         p,
         x + Math.cos(a) * 0.38,
         0.55 + i * 0.14,
         z + Math.sin(a) * 0.38,
-        0.6, 0.12, a, M.darkGreen
+        0.6, 0.12, a,
+        M.darkGreen
       );
+
       l.rotation.z = Math.cos(a) * 0.25;
     }
 
-    sphere(p, x + 0.16, 1.12, z,
-      0.14, 0.3, 0.13, M.yellow);
+    sphere(
+      p, x + 0.16, 1.12, z,
+      0.14, 0.3, 0.13, M.yellow
+    );
   }
 
   function mungBean(p, x, z) {
-    cylinder(p, x, 0.32, z, 0.64, 0.035, M.green);
+    cylinder(
+      p, x, 0.32, z,
+      0.64, 0.035, M.green
+    );
 
     for (let i = 0; i < 3; i++) {
       const a = i * Math.PI * 2 / 3;
+
       for (let j = 0; j < 3; j++) {
         sphere(
           p,
           x + Math.cos(a) * (0.17 + j * 0.08),
           0.35 + j * 0.055,
           z + Math.sin(a) * (0.17 + j * 0.08),
-          0.13, 0.045, 0.11, M.lightGreen
+          0.13, 0.045, 0.11,
+          M.lightGreen
         );
       }
     }
 
-    sphere(p, x + 0.18, 0.28, z,
-      0.04, 0.17, 0.045, M.darkGreen);
+    sphere(
+      p, x + 0.18, 0.28, z,
+      0.04, 0.17, 0.045,
+      M.darkGreen
+    );
   }
 
   function groundnut(p, x, z) {
     for (let i = 0; i < 6; i++) {
       const a = i * Math.PI / 3;
+
       cylinder(
-        p, x + Math.cos(a) * 0.1,
-        0.16, z + Math.sin(a) * 0.1,
+        p,
+        x + Math.cos(a) * 0.1,
+        0.16,
+        z + Math.sin(a) * 0.1,
         0.32, 0.025, M.green
       );
 
@@ -452,37 +507,53 @@ function initializeFarm(host) {
           x + Math.cos(a) * (0.18 + j * 0.08),
           0.27,
           z + Math.sin(a) * (0.18 + j * 0.08),
-          0.1, 0.035, 0.08, M.lightGreen
+          0.1, 0.035, 0.08,
+          M.lightGreen
         );
       }
     }
 
-    // Small illustrative exposed pods
     for (let i = 0; i < 3; i++) {
-      sphere(p, x + i * 0.12 - 0.12,
-        0.06, z, 0.08, 0.055, 0.06, M.orange);
+      sphere(
+        p,
+        x + i * 0.12 - 0.12,
+        0.06, z,
+        0.08, 0.055, 0.06,
+        M.orange
+      );
     }
   }
 
   function soybean(p, x, z) {
-    cylinder(p, x, 0.52, z, 1.04, 0.045, M.green);
+    cylinder(
+      p, x, 0.52, z,
+      1.04, 0.045, M.green
+    );
 
     for (let i = 0; i < 5; i++) {
       const a = i * 1.25;
+
       for (let j = 0; j < 3; j++) {
         sphere(
           p,
           x + Math.cos(a) * (0.17 + j * 0.1),
           0.4 + j * 0.16,
           z + Math.sin(a) * (0.17 + j * 0.1),
-          0.16, 0.05, 0.13, M.darkGreen
+          0.16, 0.05, 0.13,
+          M.darkGreen
         );
       }
     }
 
     for (let i = 0; i < 3; i++) {
-      sphere(p, x + 0.11, 0.3 + i * 0.2,
-        z, 0.07, 0.13, 0.055, M.yellow);
+      sphere(
+        p,
+        x + 0.11,
+        0.3 + i * 0.2,
+        z,
+        0.07, 0.13, 0.055,
+        M.yellow
+      );
     }
   }
 
@@ -496,17 +567,24 @@ function initializeFarm(host) {
           x + Math.cos(a) * j * 0.15,
           0.13,
           z + Math.sin(a) * j * 0.15,
-          0.16, 0.035, 0.13, M.green
+          0.16, 0.035, 0.13,
+          M.green
         );
       }
     }
 
-    sphere(p, x + 0.15, 0.18, z,
-      0.07, 0.04, 0.07, M.purple);
+    sphere(
+      p, x + 0.15, 0.18, z,
+      0.07, 0.04, 0.07,
+      M.purple
+    );
   }
 
   function cassava(p, x, z) {
-    cylinder(p, x, 0.8, z, 1.6, 0.065, M.stem);
+    cylinder(
+      p, x, 0.8, z,
+      1.6, 0.065, M.trunk
+    );
 
     for (let i = 0; i < 8; i++) {
       const a = i * Math.PI / 4;
@@ -517,8 +595,10 @@ function initializeFarm(host) {
           x + Math.cos(a) * j * 0.13,
           1.55,
           z + Math.sin(a) * j * 0.13,
-          0.055, 0.025, 0.16, M.darkGreen
+          0.055, 0.025, 0.16,
+          M.darkGreen
         );
+
         l.rotation.y = a;
       }
     }
@@ -527,46 +607,60 @@ function initializeFarm(host) {
   function pineapple(p, x, z) {
     for (let i = 0; i < 13; i++) {
       const a = i * Math.PI * 2 / 13;
+
       const l = sphere(
         p,
         x + Math.cos(a) * 0.25,
         0.26,
         z + Math.sin(a) * 0.25,
-        0.075, 0.35, 0.055, M.darkGreen
+        0.075, 0.35, 0.055,
+        M.darkGreen
       );
+
       l.rotation.z = Math.cos(a) * 0.55;
       l.rotation.x = Math.sin(a) * 0.55;
     }
 
-    sphere(p, x, 0.52, z,
-      0.2, 0.31, 0.2, M.orange);
+    sphere(
+      p, x, 0.52, z,
+      0.2, 0.31, 0.2,
+      M.orange
+    );
 
     for (let i = 0; i < 6; i++) {
       const a = i * Math.PI / 3;
+
       const crown = sphere(
         p,
         x + Math.cos(a) * 0.07,
         0.86,
         z + Math.sin(a) * 0.07,
-        0.035, 0.18, 0.03, M.green
+        0.035, 0.18, 0.03,
+        M.green
       );
+
       crown.rotation.z = Math.cos(a) * 0.35;
     }
   }
 
   function banana(p, x, z) {
-    cylinder(p, x, 1.15, z,
-      2.3, 0.2, M.paleStem);
+    cylinder(
+      p, x, 1.15, z,
+      2.3, 0.2, M.paleStem
+    );
 
     for (let i = 0; i < 8; i++) {
       const a = i * Math.PI / 4;
+
       const l = sphere(
         p,
         x + Math.cos(a) * 0.8,
         2.35,
         z + Math.sin(a) * 0.8,
-        0.26, 0.055, 1.1, M.bananaGreen
+        0.26, 0.055, 1.1,
+        M.bananaGreen
       );
+
       l.rotation.y = a;
       l.rotation.z = Math.cos(a) * 0.18;
     }
@@ -577,48 +671,59 @@ function initializeFarm(host) {
         x + 0.37 + Math.cos(i * 1.2) * 0.09,
         1.8 - i * 0.11,
         z + 0.18,
-        0.08, 0.15, 0.08, M.yellow
+        0.08, 0.15, 0.08,
+        M.yellow
       );
     }
   }
 
   function coconut(p, x, z) {
     const trunk = cylinder(
-      p, x, 2, z, 4, 0.17, M.stem
+      p, x, 2, z,
+      4, 0.17, M.trunk
     );
+
     trunk.rotation.z = 0.07;
 
     for (let i = 0; i < 11; i++) {
       const a = i * Math.PI * 2 / 11;
+
       const frond = sphere(
         p,
         x + Math.cos(a) * 1.2,
         3.95,
         z + Math.sin(a) * 1.2,
-        0.15, 0.065, 1.4, M.darkGreen
+        0.15, 0.065, 1.4,
+        M.darkGreen
       );
+
       frond.rotation.y = a;
       frond.rotation.z = Math.cos(a) * 0.18;
     }
 
     for (let i = 0; i < 4; i++) {
       const a = i * Math.PI / 2;
+
       sphere(
         p,
         x + Math.cos(a) * 0.22,
         3.65,
         z + Math.sin(a) * 0.22,
-        0.17, 0.17, 0.17, M.stem
+        0.17, 0.17, 0.17,
+        M.trunk
       );
     }
   }
 
   function durian(p, x, z) {
-    cylinder(p, x, 1.5, z,
-      3, 0.24, M.stem);
+    cylinder(
+      p, x, 1.5, z,
+      3, 0.24, M.trunk
+    );
 
     for (let i = 0; i < 7; i++) {
       const a = i * Math.PI * 2 / 7;
+
       sphere(
         p,
         x + Math.cos(a) * 0.75,
@@ -631,12 +736,14 @@ function initializeFarm(host) {
 
     for (let i = 0; i < 5; i++) {
       const a = i * Math.PI * 2 / 5;
+
       sphere(
         p,
         x + Math.cos(a) * 0.7,
         2.3,
         z + Math.sin(a) * 0.7,
-        0.18, 0.22, 0.18, M.orange
+        0.18, 0.22, 0.18,
+        M.orange
       );
     }
   }
@@ -664,35 +771,58 @@ function initializeFarm(host) {
     baseline: "rice",
     preferredCrop: "auto",
     drainage: "unknown",
-    soilCover: false,
     priority: "soil",
+    soilCover: false,
     mode: "baseline",
     stages: [],
     stageIndex: 0,
+    growth: 1,
     rainfall: null,
     temperature: null,
     climatePeriod: null
   };
 
   // ==========================================
-  // 8. FIELD MANAGEMENT
+  // 8. DEVELOPMENT STAGES
+  // ==========================================
+
+  function growthPhase(progress) {
+    if (progress < 0.15) return "Field preparation";
+    if (progress < 0.4) return "Establishment";
+    if (progress < 0.75) return "Vegetative development";
+    return "Later development";
+  }
+
+  function growthScale(progress) {
+    if (progress < 0.15) return 0;
+    return Math.max(
+      0.12,
+      Math.min(1, (progress - 0.1) / 0.9)
+    );
+  }
+
+  // ==========================================
+  // 9. FIELD MANAGEMENT
   // ==========================================
 
   const hotspots = [];
 
-  function addHotspot(x, y, z, title, explanation) {
-    const object = sphere(
+  function addHotspot(
+    x, y, z, title, explanation
+  ) {
+    const obj = sphere(
       hotspotGroup,
       x, y, z,
-      0.22, 0.22, 0.22, M.warning
+      0.23, 0.23, 0.23,
+      M.warning
     );
 
-    object.userData = {
+    obj.userData = {
       title,
       explanation
     };
 
-    hotspots.push(object);
+    hotspots.push(obj);
   }
 
   function addManagement(id) {
@@ -701,7 +831,7 @@ function initializeFarm(host) {
     hotspots.length = 0;
 
     const crop = CROPS[id];
-    const flooded = crop.system === "paddy";
+    const paddy = crop.system === "paddy";
     const raised = crop.system === "raised";
     const orchard = (
       crop.system === "orchard" ||
@@ -709,65 +839,87 @@ function initializeFarm(host) {
     );
 
     plots.forEach(([x, z]) => {
+
       box(
         managementGroup,
         7.5, 0.28, 6.3,
-        M.darkSoil, x, 0.18, z
+        M.darkSoil,
+        x, 0.18, z
       );
 
-      if (flooded) {
+      if (paddy) {
         box(
           managementGroup,
           7.1, 0.06, 5.9,
-          M.water, x, 0.37, z
+          M.water,
+          x, 0.37, z
         );
 
-        // Paddy bunds
         for (const dz of [-3, 3]) {
           box(
             managementGroup,
-            7.5, 0.22, 0.25,
-            M.raisedSoil, x, 0.48, z + dz
+            7.5, 0.23, 0.25,
+            M.raised,
+            x, 0.48, z + dz
           );
         }
 
       } else if (raised) {
+
         for (let row = -2; row <= 2; row++) {
           box(
             managementGroup,
             6.7, 0.23, 0.65,
-            M.raisedSoil,
-            x, 0.45, z + row * 1.05
+            M.raised,
+            x, 0.45,
+            z + row * 1.05
           );
         }
 
       } else {
+
         box(
           managementGroup,
           7.1, 0.08, 5.9,
-          M.soil, x, 0.36, z
+          M.soil,
+          x, 0.36, z
         );
       }
 
-      if (state.soilCover && !flooded) {
-        for (let i = 0; i < 6; i++) {
+      // Visually distinct soil-cover scenario.
+      // For dryland crops, cover most of the
+      // exposed spaces between planting rows.
+      if (state.soilCover && !paddy) {
+
+        for (let row = -2; row <= 2; row++) {
+
           box(
             managementGroup,
-            0.75, 0.025, 0.24,
+            6.5, 0.035, 0.36,
             M.mulch,
-            x - 2.5 + i,
-            raised ? 0.59 : 0.42,
-            z + 2.3
+            x, raised ? 0.59 : 0.43,
+            z + row * 1.05 + 0.42
           );
+
+          for (let i = -3; i <= 3; i++) {
+            box(
+              managementGroup,
+              0.38, 0.04, 0.09,
+              M.residue,
+              x + i * 0.9,
+              raised ? 0.62 : 0.46,
+              z + row * 1.05 + 0.42
+            );
+          }
         }
       }
     });
 
-    if (flooded) {
+    if (paddy) {
       addHotspot(
         -8, 0.7, -6,
         "Paddy water management",
-        "Illustrative standing water and bunds. Water depth and irrigation needs are not calculated."
+        "The standing water and bunds illustrate a managed paddy scenario. Water depth and irrigation requirements are not calculated."
       );
     }
 
@@ -775,7 +927,7 @@ function initializeFarm(host) {
       addHotspot(
         -5, 0.9, -4,
         "Raised planting beds",
-        "Raised beds may support drainage and crop establishment. Their suitability depends on actual soil and field conditions."
+        "Raised beds may improve field drainage and establishment for suitable crops. Actual dimensions require local assessment."
       );
     }
 
@@ -783,47 +935,51 @@ function initializeFarm(host) {
       addHotspot(
         5, 1.1, 4,
         "Long-term planting arrangement",
-        "This crop requires longer-term field planning. Illustrated tree spacing is not a planting-density prescription."
+        "This crop involves a longer-term planting decision. The displayed tree spacing is illustrative, not a planting-density recommendation."
       );
     }
 
     addHotspot(
       -10.1, 0.65, 0,
-      "Drainage and irrigation channel",
+      "Water-management channel",
       state.drainage === "poor"
-        ? "You reported poor drainage. Inspect waterlogging and assess drainage feasibility before switching to sensitive crops."
+        ? "You reported poor drainage. Inspect waterlogging and assess whether drainage improvements are feasible before changing crops."
         : state.drainage === "unknown"
-          ? "Field drainage has not been verified. Observe how long water remains after heavy rain."
-          : "This is an illustrative water-management channel. Actual design requires local assessment."
+          ? "Field drainage is unknown. Observe how long water remains after heavy rain."
+          : "This channel illustrates a possible water-management feature. Actual engineering design requires site measurements."
     );
 
-    if (state.soilCover && !flooded) {
+    if (state.soilCover && !paddy) {
       addHotspot(
         4, 0.8, -4,
         "Soil-cover management",
-        "Mulch and crop residues may help reduce exposed soil. Soil-health improvements are not measured by this viewer."
+        "The golden strips represent mulch or crop residues. They may reduce exposed soil, but the visualization does not calculate soil-health improvements."
       );
     }
   }
 
   // ==========================================
-  // 9. RENDER SELECTED CROP
+  // 10. RENDER CROP DEVELOPMENT
   // ==========================================
 
-  function showCrop(id) {
-    if (!builders[id]) id = "rice";
-
-    state.crop = id;
+  function renderCrop() {
     clearGroup(cropGroup);
-    addManagement(id);
 
-    const crop = CROPS[id];
-    const spacing = crop.spacing;
+    const crop = CROPS[state.crop];
+    const builder = builders[state.crop];
+    const scale = growthScale(state.growth);
+
+    if (scale <= 0) {
+      updateInformation();
+      return;
+    }
 
     plots.forEach(([px, pz]) => {
       const group = new THREE.Group();
       group.position.set(px, 0.49, pz);
       cropGroup.add(group);
+
+      const spacing = crop.spacing;
 
       for (
         let x = -2.7;
@@ -835,17 +991,51 @@ function initializeFarm(host) {
           z <= 2.1;
           z += spacing
         ) {
-          builders[id](group, x, z);
+
+          const plant = new THREE.Group();
+          plant.position.set(x, 0, z);
+          group.add(plant);
+
+          // Crop models are built around local
+          // coordinates and then scaled to show
+          // simplified development.
+          builder(plant, 0, 0);
+
+          plant.scale.set(
+            Math.max(0.3, scale),
+            scale,
+            Math.max(0.3, scale)
+          );
         }
       }
     });
 
     updateInformation();
+  }
+
+  function showCrop(id) {
+    if (!CROPS[id]) id = "rice";
+
+    state.crop = id;
+
+    addManagement(id);
+    renderCrop();
     resize();
   }
 
+  function setGrowth(value) {
+    if (!Number.isFinite(value)) return;
+
+    state.growth = Math.max(
+      0,
+      Math.min(1, value)
+    );
+
+    renderCrop();
+  }
+
   // ==========================================
-  // 10. INFORMATION PANEL
+  // 11. INFORMATION PANEL
   // ==========================================
 
   const information = document.createElement("div");
@@ -853,51 +1043,79 @@ function initializeFarm(host) {
 
   information.style.cssText = `
     position:absolute;
-    bottom:12px;
     left:12px;
     right:12px;
+    bottom:12px;
     z-index:5;
-    padding:13px 16px;
-    border-radius:13px;
-    background:#ffffffed;
+    background:#fffffff0;
     color:#10294d;
+    border-radius:13px;
+    padding:12px 15px;
     font:13px/1.5 "Segoe UI",Arial,sans-serif;
-    box-shadow:0 5px 18px #10294d20;
     pointer-events:none;
+    box-shadow:0 5px 18px #10294d20;
   `;
 
   host.appendChild(information);
 
   function updateInformation() {
     const crop = CROPS[state.crop];
+    const phase = growthPhase(state.growth);
 
     information.replaceChildren();
 
     const title = document.createElement("strong");
     title.style.fontSize = "15px";
-    title.textContent = crop.name;
+    title.textContent =
+      `${crop.name} · ${phase}`;
 
     const description = document.createElement("div");
-    description.textContent = crop.explanation;
+
+    const nominalMonth = Math.max(
+      1,
+      Math.ceil(
+        state.growth * crop.duration
+      )
+    );
+
+    description.textContent =
+      `Illustrative development stage near month ` +
+      `${nominalMonth} of approximately ` +
+      `${crop.duration} months. ${crop.info}`;
 
     information.append(title, description);
 
+    if (state.soilCover) {
+      const cover = document.createElement("div");
+      cover.style.color = "#087b78";
+      cover.style.marginTop = "5px";
+
+      cover.textContent =
+        crop.system === "paddy"
+          ? "Dryland mulch is not shown for the flooded paddy scenario."
+          : "Golden strips illustrate optional soil-cover management.";
+
+      information.append(cover);
+    }
+
     if (Number.isFinite(state.rainfall)) {
       const evidence = document.createElement("div");
-      evidence.style.marginTop = "5px";
       evidence.style.color = "#216ad6";
+      evidence.style.marginTop = "5px";
+
       evidence.textContent =
         `NASA historical annual rainfall: ` +
         `${state.rainfall.toFixed(1)} mm` +
         (state.climatePeriod
           ? ` · ${state.climatePeriod}`
           : "");
+
       information.append(evidence);
     }
   }
 
   // ==========================================
-  // 11. CLICKABLE FIELD FEATURES
+  // 12. CLICKABLE FIELD FEATURES
   // ==========================================
 
   const raycaster = new THREE.Raycaster();
@@ -909,13 +1127,13 @@ function initializeFarm(host) {
     position:absolute;
     top:12px;
     right:12px;
-    z-index:10;
-    width:min(270px,70%);
+    z-index:12;
+    width:min(275px,75%);
     background:#10294df2;
     color:white;
     padding:15px;
     border-radius:13px;
-    font:13px/1.55 "Segoe UI",Arial,sans-serif;
+    font:13px/1.5 "Segoe UI",Arial,sans-serif;
     display:none;
     box-shadow:0 8px 25px #10294d35;
   `;
@@ -926,7 +1144,7 @@ function initializeFarm(host) {
 
   popupClose.textContent = "Close";
   popupClose.style.cssText = `
-    margin-top:10px;
+    margin-top:9px;
     background:#ffffff25;
     color:white;
     border:1px solid #ffffff50;
@@ -939,7 +1157,12 @@ function initializeFarm(host) {
     popup.style.display = "none";
   };
 
-  popup.append(popupTitle, popupText, popupClose);
+  popup.append(
+    popupTitle,
+    popupText,
+    popupClose
+  );
+
   host.appendChild(popup);
 
   let pointerDown = null;
@@ -957,6 +1180,7 @@ function initializeFarm(host) {
   renderer.domElement.addEventListener(
     "pointerup",
     event => {
+
       if (!pointerDown) return;
 
       const distance = Math.hypot(
@@ -966,57 +1190,57 @@ function initializeFarm(host) {
 
       pointerDown = null;
 
-      // Do not treat camera dragging as clicking.
       if (distance > 6) return;
 
       const rect =
         renderer.domElement.getBoundingClientRect();
 
       pointer.x =
-        ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        ((event.clientX - rect.left) /
+          rect.width) * 2 - 1;
 
       pointer.y =
-        -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        -((event.clientY - rect.top) /
+          rect.height) * 2 + 1;
 
-      raycaster.setFromCamera(pointer, camera);
-
-      const intersections = raycaster.intersectObjects(
-        hotspots,
-        false
+      raycaster.setFromCamera(
+        pointer,
+        camera
       );
+
+      const intersections =
+        raycaster.intersectObjects(
+          hotspots,
+          false
+        );
 
       if (!intersections.length) return;
 
-      const selected = intersections[0].object;
+      const data =
+        intersections[0].object.userData;
 
-      popupTitle.textContent =
-        selected.userData.title;
-
-      popupText.textContent =
-        selected.userData.explanation;
-
+      popupTitle.textContent = data.title;
+      popupText.textContent = data.explanation;
       popup.style.display = "block";
     }
   );
 
   // ==========================================
-  // 12. PERSONALIZED FARM SETTINGS
+  // 13. SCENARIO MANAGEMENT
   // ==========================================
 
   function setScenario(settings = {}) {
-    if (
-      settings.baseline &&
-      CROPS[settings.baseline]
-    ) {
+
+    if (CROPS[settings.baseline]) {
       state.baseline = settings.baseline;
     }
 
     if (
-      settings.preferred_crop &&
-      (CROPS[settings.preferred_crop] ||
-       settings.preferred_crop === "auto")
+      settings.preferred_crop === "auto" ||
+      CROPS[settings.preferred_crop]
     ) {
-      state.preferredCrop = settings.preferred_crop;
+      state.preferredCrop =
+        settings.preferred_crop;
     }
 
     if (
@@ -1033,52 +1257,50 @@ function initializeFarm(host) {
       state.priority = settings.priority;
     }
 
-    if (typeof settings.soilCover === "boolean") {
-      state.soilCover = settings.soilCover;
-    }
-
     if (Array.isArray(settings.stages)) {
       state.stages = settings.stages.filter(
         stage => CROPS[stage.crop_id]
       );
+      state.stageIndex = 0;
     }
 
-    if (settings.mode === "baseline" ||
-        settings.mode === "proposed") {
+    if (
+      ["baseline", "proposed"]
+        .includes(settings.mode)
+    ) {
       state.mode = settings.mode;
     }
 
     const nextCrop =
-      settings.crop_id && CROPS[settings.crop_id]
-        ? settings.crop_id
-        : state.mode === "baseline"
-          ? state.baseline
-          : state.stages[0]?.crop_id ||
-            (CROPS[state.preferredCrop]
-              ? state.preferredCrop
-              : state.baseline);
+      state.mode === "baseline"
+        ? state.baseline
+        : state.stages[0]?.crop_id ||
+          (CROPS[state.preferredCrop]
+            ? state.preferredCrop
+            : state.baseline);
 
+    state.growth = 1;
     showCrop(nextCrop);
   }
 
   function setMode(mode) {
-    if (!["baseline", "proposed"].includes(mode)) {
-      return;
-    }
+    if (
+      !["baseline", "proposed"]
+        .includes(mode)
+    ) return;
 
     state.mode = mode;
+    state.growth = 1;
 
-    if (mode === "baseline") {
-      showCrop(state.baseline);
-    } else {
-      const crop =
-        state.stages[state.stageIndex]?.crop_id ||
-        (CROPS[state.preferredCrop]
-          ? state.preferredCrop
-          : state.baseline);
+    const id =
+      mode === "baseline"
+        ? state.baseline
+        : state.stages[state.stageIndex]?.crop_id ||
+          (CROPS[state.preferredCrop]
+            ? state.preferredCrop
+            : state.baseline);
 
-      showCrop(crop);
-    }
+    showCrop(id);
   }
 
   function showStage(index) {
@@ -1086,62 +1308,68 @@ function initializeFarm(host) {
       !Number.isInteger(index) ||
       index < 0 ||
       index >= state.stages.length
-    ) {
-      return;
-    }
+    ) return;
 
     state.stageIndex = index;
     state.mode = "proposed";
-    showCrop(state.stages[index].crop_id);
+    state.growth = 1;
+
+    showCrop(
+      state.stages[index].crop_id
+    );
   }
 
   function setSoilCover(enabled) {
     state.soilCover = Boolean(enabled);
-    showCrop(state.crop);
+    addManagement(state.crop);
+    updateInformation();
   }
 
   function setDrainage(drainage) {
     if (
       !["unknown", "poor", "moderate", "good"]
         .includes(drainage)
-    ) {
-      return;
-    }
+    ) return;
 
     state.drainage = drainage;
-    showCrop(state.crop);
+    addManagement(state.crop);
+    updateInformation();
   }
 
-  function setEvidence(evidence = {}) {
+  function setEvidence(data = {}) {
     state.rainfall =
-      typeof evidence.mean_annual_rainfall_mm === "number"
-        ? evidence.mean_annual_rainfall_mm
+      Number.isFinite(
+        data.mean_annual_rainfall_mm
+      )
+        ? data.mean_annual_rainfall_mm
         : null;
 
     state.temperature =
-      typeof evidence.mean_temperature_c === "number"
-        ? evidence.mean_temperature_c
+      Number.isFinite(
+        data.mean_temperature_c
+      )
+        ? data.mean_temperature_c
         : null;
 
     state.climatePeriod =
-      evidence.climate_period || null;
+      data.climate_period || null;
 
     updateInformation();
   }
 
   // ==========================================
-  // 13. RESIZE AND CAMERA
+  // 14. CAMERA AND RESPONSIVE RENDERING
   // ==========================================
 
   function resize() {
-    const width = host.clientWidth;
-    const height = host.clientHeight;
+    const w = host.clientWidth;
+    const h = host.clientHeight;
 
-    if (width < 2 || height < 2) return;
+    if (w < 2 || h < 2) return;
 
-    camera.aspect = width / height;
+    camera.aspect = w / h;
     camera.updateProjectionMatrix();
-    renderer.setSize(width, height, false);
+    renderer.setSize(w, h, false);
   }
 
   function resetCamera() {
@@ -1152,7 +1380,7 @@ function initializeFarm(host) {
   }
 
   // ==========================================
-  // 14. PUBLIC API
+  // 15. PUBLIC API
   // ==========================================
 
   window.BUMIFarm3D = {
@@ -1160,6 +1388,7 @@ function initializeFarm(host) {
     showStage,
     setScenario,
     setMode,
+    setGrowth,
     setSoilCover,
     setDrainage,
     setEvidence,
@@ -1183,7 +1412,7 @@ function initializeFarm(host) {
   };
 
   // ==========================================
-  // 15. INITIALIZATION
+  // 16. INITIALIZE
   // ==========================================
 
   showCrop("rice");
