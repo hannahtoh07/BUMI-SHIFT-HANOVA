@@ -4,10 +4,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>BUMI SHIFT | HANOVA Farm Intelligence</title>
+<title>BUMI SHIFT | Rethink Your Crops</title>
+
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+
 <script type="importmap">
 {
  "imports":{
@@ -16,668 +18,1297 @@
  }
 }
 </script>
+
 <style>
 :root{
- --bg:#090f24;--panel:#141e38;--panel2:#202d4d;
- --line:#394b70;--white:#f5f8ff;--muted:#b9c9e5;
- --cyan:#55e1f1;--purple:#b39aff;--mint:#68efbb;
- --gold:#ffd17b;--pink:#ff98ad
+ --navy:#10294d;--blue:#216ad6;--teal:#079f9b;
+ --purple:#7658cb;--amber:#e9a12a;
+ --bg:#f3f7fc;--white:#fff;--line:#dce5f0;
+ --muted:#526a87;--shadow:0 8px 28px #18355d0d
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--white);
- font:15px/1.55 "Segoe UI",Arial,sans-serif}
-body:before{content:"";position:fixed;inset:0;pointer-events:none;
- background:radial-gradient(circle at 5% 0%,#243b78,transparent 48%),
- radial-gradient(circle at 95% 40%,#3d245d,transparent 45%);opacity:.65}
+body{
+ margin:0;background:var(--bg);color:var(--navy);
+ font:15px/1.55 "Segoe UI",Arial,sans-serif
+}
 button,input,textarea{font:inherit}
-button{cursor:pointer;border:0;border-radius:11px;padding:11px 15px;
- background:linear-gradient(115deg,var(--cyan),var(--mint));
- color:#092035;font-weight:750}
-button:hover{filter:brightness(1.1)}
+button{
+ cursor:pointer;border:0;border-radius:11px;
+ padding:11px 17px;background:var(--blue);
+ color:white;font-weight:700
+}
+button:hover{filter:brightness(1.08)}
 button:disabled{opacity:.55;cursor:wait}
-input,textarea{background:#101a34;color:white;border:1px solid #52658b;
- border-radius:11px;padding:12px;width:100%}
-textarea{min-height:88px;resize:vertical}
-h1,h2,h3,p{margin:0}h1{font-size:clamp(26px,3vw,42px);line-height:1.15}
-h2{font-size:21px}h3{font-size:16px}
-a{color:var(--cyan)}
-.app{position:relative;max-width:1580px;margin:auto;padding:20px}
-header{display:flex;align-items:center;justify-content:space-between;
- flex-wrap:wrap;gap:12px;margin-bottom:22px}
-.logo{font-size:27px;font-weight:900;letter-spacing:-1px}
-.logo span{background:linear-gradient(100deg,var(--cyan),var(--purple),var(--mint));
- background-clip:text;-webkit-background-clip:text;color:transparent}
+input,textarea{
+ width:100%;border:1px solid #cbd8e8;
+ border-radius:11px;padding:12px;background:white;
+ color:var(--navy)
+}
+textarea{min-height:95px;resize:vertical}
+h1,h2,h3,p{margin:0}
+h1{font-size:clamp(28px,3vw,43px);line-height:1.17}
+h2{font-size:21px}
+h3{font-size:16px}
+p{line-height:1.65}
+a{color:var(--blue)}
+.app{max-width:1600px;margin:auto;padding:20px}
+header{
+ display:flex;align-items:center;justify-content:space-between;
+ gap:15px;flex-wrap:wrap;padding:12px 0 23px
+}
+.logo{
+ font-size:clamp(35px,4vw,55px);
+ font-weight:950;letter-spacing:-2px;line-height:1
+}
+.logo span{color:var(--blue)}
+.subtitle{color:var(--muted);font-size:13px;margin-top:7px}
+.pill{
+ background:#e9f2ff;color:#24518e;
+ border-radius:30px;padding:7px 13px;font-size:12px
+}
+.hero{
+ position:relative;overflow:hidden;border-radius:23px;
+ background:linear-gradient(110deg,#e9f3ff,#e9f9f5);
+ margin-bottom:18px;min-height:190px;
+ display:flex;align-items:center;padding:28px
+}
+.hero:before{
+ content:"";position:absolute;right:-40px;top:-90px;
+ width:300px;height:300px;border:1px solid #9ec5e6;
+ border-radius:50%;box-shadow:0 0 0 32px #ffffff35,
+ 0 0 0 68px #8ed7c522
+}
+.heroContent{position:relative;max-width:760px}
+.hero p{color:var(--muted);margin-top:12px}
+.eyebrow{
+ color:var(--blue);font-size:11px;font-weight:850;
+ letter-spacing:1.3px;text-transform:uppercase;margin-bottom:7px
+}
+.panel{
+ background:white;border:1px solid var(--line);
+ border-radius:18px;padding:20px;box-shadow:var(--shadow);
+ min-width:0
+}
+.head{
+ display:flex;align-items:center;justify-content:space-between;
+ flex-wrap:wrap;gap:12px;margin-bottom:15px
+}
 .sub{color:var(--muted);font-size:13px}
-.pill{border:1px solid #536a98;background:#1d2c4d;
- border-radius:40px;padding:7px 12px;font-size:12px;color:#dceaff}
-.hero{margin-bottom:20px}
-.hero p{margin-top:9px;color:var(--muted);max-width:720px}
-.eyebrow{color:var(--cyan);font-size:11px;font-weight:800;
- letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px}
-.panel{background:linear-gradient(145deg,#192744,#111a32);
- border:1px solid var(--line);border-radius:20px;padding:19px;min-width:0}
-.head{display:flex;align-items:center;justify-content:space-between;
- flex-wrap:wrap;gap:10px;margin-bottom:15px}
-.location{display:flex;gap:9px;flex-wrap:wrap}
-.location input{flex:1;min-width:180px}
-.status{font-size:13px;color:var(--muted);margin-top:11px}
-.main{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(320px,1fr);
- gap:17px;margin-top:17px}
+.location{display:flex;gap:10px;flex-wrap:wrap}
+.location input{flex:1;min-width:190px}
+.status{font-size:13px;color:var(--muted);margin-top:10px}
+.main{
+ display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,1fr);
+ gap:17px;margin-top:17px
+}
 .stack{display:grid;gap:17px;align-content:start;min-width:0}
-#farm3d{height:460px;width:100%;position:relative;overflow:hidden;
- border-radius:16px;background:#b8dbe8;touch-action:none}
+#map{height:380px;border-radius:13px;z-index:0}
+#farm3d{
+ height:430px;background:#b6dce9;border-radius:13px;
+ overflow:hidden;position:relative;touch-action:none
+}
 #farm3d canvas{display:block}
-.overlay{position:absolute;z-index:3;background:#10213be8;
- border:1px solid #7695b3;color:white;border-radius:12px;padding:10px 13px;
- pointer-events:none}
-.overlay.top{top:12px;left:12px}
-.overlay.bottom{bottom:12px;left:12px}
-.overlay strong{display:block;font-size:16px}
-.overlay small{display:block;color:#c7d9eb}
-.farmcontrols{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}
-.farmcontrols button{background:#314b77;color:white;flex:1}
-.farmcontrols button.active{background:var(--purple);color:#10152e}
-#resetCamera{flex:0 0 auto}
-.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-.metric{background:#233150;border-radius:13px;padding:14px}
-.metric small{color:var(--muted);display:block}
-.metric strong{font-size:clamp(17px,2vw,24px);display:block;margin:5px 0;
- overflow-wrap:anywhere}
+.mapControls,.timeline{
+ display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px
+}
+.mapControls button,.timeline button{
+ background:#e9f1fb;color:var(--navy);flex:1
+}
+.mapControls button.active,.timeline button.active{
+ background:var(--blue);color:white
+}
+.farmLabel{
+ position:absolute;left:12px;top:12px;
+ background:#ffffffed;padding:10px 14px;
+ border-radius:11px;color:var(--navy);
+ box-shadow:0 3px 15px #0002;
+ pointer-events:none
+}
+.farmLabel strong{display:block}
+.farmLabel small{color:var(--muted)}
+.metrics{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:10px;margin:15px 0
+}
+.metric{
+ background:#f0f5fc;padding:13px;border-radius:12px;
+ border:1px solid #e0e9f5
+}
+.metric small{display:block;color:var(--muted);font-size:11px}
+.metric strong{
+ display:block;font-size:20px;margin:5px 0;
+ overflow-wrap:anywhere
+}
 .chartgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.chartbox{height:250px;background:#202d4b;border-radius:13px;
- padding:12px;position:relative}
-.chartbox canvas{height:100%!important;width:100%!important}
-.crop,.rotation{background:#202e4e;border:1px solid #405476;
- border-radius:14px;padding:13px;margin-top:9px}
-.crop{display:flex;justify-content:space-between;align-items:center;gap:12px}
-.crop.active,.rotation.active{border-color:var(--cyan);background:#244264}
-.crop strong{font-size:16px}
-.crop small,.rotation small{display:block;color:var(--muted)}
-.crop button{font-size:12px;padding:8px 11px}
-.rotation{width:100%;display:block;text-align:left;color:white}
-.rotation strong{display:block}
+.chartbox{
+ height:250px;position:relative;background:#f5f8fd;
+ border-radius:13px;padding:12px
+}
+.chartbox canvas{width:100%!important;height:100%!important}
+.crop{
+ display:grid;grid-template-columns:100px minmax(0,1fr);
+ gap:13px;padding:12px;margin-top:10px;
+ border:1px solid var(--line);border-radius:14px;
+ background:#fff
+}
+.crop.active{border-color:var(--blue);background:#f0f6ff}
+.cropPhoto{
+ width:100px;height:110px;object-fit:cover;
+ border-radius:10px;background:#e5edf6
+}
+.crop strong{font-size:17px}
+.crop small{display:block;color:var(--muted)}
+.crop button{padding:7px 11px;margin-top:8px;font-size:12px}
+.score{color:var(--teal);font-weight:800}
+.rotation{
+ display:block;width:100%;text-align:left;
+ background:#f6f8fd;border:1px solid var(--line);
+ color:var(--navy);border-radius:13px;
+ padding:13px;margin-top:9px
+}
+.rotation.active{background:#eeeaff;border-color:var(--purple)}
+.rotation strong,.rotation small{display:block}
+.rotation small{color:var(--muted);margin-top:5px}
 .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.action{background:#202e4e;border-left:3px solid var(--mint);
- border-radius:12px;padding:12px}
+.action{
+ padding:13px;border-radius:12px;background:#f4f8fc;
+ border-left:4px solid var(--teal)
+}
+.action strong{display:block}
 .action p{font-size:13px;color:var(--muted);margin-top:5px}
-.answer{white-space:pre-wrap;overflow-wrap:anywhere;
- background:#202d4b;border-radius:12px;padding:15px;margin-top:12px}
-details{border:1px solid #435579;border-radius:12px;padding:12px;margin-top:12px}
+.shift{
+ background:#edf6ff;border-radius:12px;
+ padding:15px;margin-top:10px
+}
+.shift h3{margin-bottom:5px}
+.shift p{font-size:13px;color:var(--muted)}
+.answer{
+ margin-top:12px;background:#f3f7fd;
+ border-radius:13px;padding:16px;line-height:1.7;
+ white-space:pre-wrap;overflow-wrap:anywhere
+}
+details{
+ border:1px solid var(--line);padding:12px;
+ border-radius:12px;margin-top:12px
+}
 summary{cursor:pointer;font-weight:700}
-#map{height:240px;border-radius:12px;margin-top:12px}
-.info{font-size:12px;color:#d3dff2;line-height:1.6}
-footer{text-align:center;padding:25px;color:var(--muted);font-size:12px}
-@media(max-width:1050px){.main{grid-template-columns:1fr}}
+.photoStrip{
+ display:grid;grid-template-columns:repeat(3,1fr);
+ gap:9px;margin-top:13px
+}
+.photoStrip img{
+ width:100%;height:120px;object-fit:cover;
+ border-radius:10px;background:#e6edf6
+}
+footer{
+ text-align:center;padding:25px 0;
+ color:var(--muted);font-size:12px
+}
+@media(max-width:1050px){
+ .main{grid-template-columns:1fr}
+}
 @media(max-width:650px){
  .app{padding:10px}.panel{padding:14px}
  .metrics,.chartgrid,.actions{grid-template-columns:1fr}
- #farm3d{height:350px}
+ #farm3d{height:340px}
+ .photoStrip img{height:80px}
+ .crop{grid-template-columns:85px minmax(0,1fr)}
+ .cropPhoto{width:85px;height:105px}
 }
 </style>
 </head>
+
 <body>
 <div class="app">
+
 <header>
  <div>
-  <div class="logo">✦ <span>BUMI SHIFT</span></div>
-  <div class="sub">HANOVA · Sarawak Farm Intelligence</div>
+  <div class="logo">BUMI <span>SHIFT</span></div>
+  <div class="subtitle">Rethink your crops. Restore your soil.</div>
  </div>
- <div class="pill">NASA-powered agricultural planning</div>
+ <span class="pill">Earth observation-powered farm planning</span>
 </header>
 
-<div class="hero">
- <div class="eyebrow">YOUR SMART FARM ADVISOR</div>
- <h1>Grow smarter. <span style="color:var(--cyan)">Farm better.</span></h1>
- <p>Discover crop options, compare planting strategies and explore
- practical farming activities for your location in Sarawak.</p>
-</div>
+<section class="hero">
+ <div class="heroContent">
+  <div class="eyebrow">YOUR FARM, YOUR NEXT MOVE</div>
+  <h1>Discover what your land could grow next.</h1>
+  <p>Explore crop options, compare farming shifts and
+  plan healthier growing cycles using environmental
+  evidence from your location.</p>
+ </div>
+</section>
 
 <section class="panel">
  <div class="head">
-  <div><div class="eyebrow">START HERE</div><h2>Where is your farm?</h2></div>
-  <span class="pill">Sarawak, Malaysia</span>
+  <div>
+   <div class="eyebrow">GET STARTED</div>
+   <h2>Where is your farm?</h2>
+  </div>
+  <span class="pill">Sarawak pilot</span>
  </div>
  <div class="location">
-  <input id="place" value="Samarahan, Sarawak" placeholder="Search a town">
+  <input id="place" value="Samarahan, Sarawak"
+   placeholder="Search a Sarawak location">
   <button id="searchBtn">Find Location</button>
-  <button id="analyzeBtn">Analyze Farm ✦</button>
+  <button id="analyzeBtn">Analyze My Farm</button>
  </div>
- <div id="locationLabel" class="status">Selected: 1.4600° N, 110.4900° E</div>
- <details>
-  <summary>Choose a location on the map</summary>
-  <div id="map"></div>
- </details>
- <div id="status" class="status">Ready for analysis.</div>
+ <div id="locationLabel" class="status">
+  Selected: 1.4600° N, 110.4900° E
+ </div>
+ <div id="status" class="status">
+  Choose a location to begin.
+ </div>
 </section>
 
 <div class="main">
+
 <div class="stack">
+
 <section class="panel">
  <div class="head">
-  <div><div class="eyebrow">FARM FUTURES 3D</div>
-   <h2>See your crop strategy come to life</h2></div>
-  <span class="pill">Drag · Rotate · Zoom</span>
+  <div>
+   <div class="eyebrow">EXPLORE YOUR LAND</div>
+   <h2>See your farm from a new perspective</h2>
+  </div>
  </div>
- <div id="farm3d">
-  <div class="overlay top"><strong id="fieldCrop">Rice</strong>
-   <small id="fieldPeriod">3D farm preview</small></div>
-  <div class="overlay bottom"><small>Explore the selected crop and rotation stage</small></div>
+
+ <div class="mapControls">
+  <button id="satBtn" class="active">Satellite View</button>
+  <button id="streetBtn">Map View</button>
+  <button id="farmBtn">3D Farm</button>
  </div>
- <div class="farmcontrols">
-  <button data-stage="0" class="active">Period 1</button>
-  <button data-stage="1">Period 2</button>
-  <button data-stage="2">Period 3</button>
-  <button id="resetCamera">Reset View</button>
+
+ <div id="map"></div>
+ <div id="farm3d" style="display:none">
+  <div class="farmLabel">
+   <strong id="fieldCrop">Rice</strong>
+   <small id="fieldPeriod">Crop preview</small>
+  </div>
  </div>
- <p id="farmNote" class="status">Select a crop or rotation to explore.</p>
- <details>
-  <summary>About this 3D view</summary>
-  <p class="info">This is a visual crop-management scenario. It is not
-  a satellite reconstruction or a validated crop-growth forecast.</p>
- </details>
+
+ <div id="rotationControls" style="display:none">
+  <p class="sub" style="margin:12px 0">
+   Select a crop in the rotation:
+  </p>
+  <div id="timeline" class="timeline"></div>
+  <button id="resetCamera">Reset 3D View</button>
+ </div>
+
+ <p id="farmNote" class="status">
+  Explore the location or select a crop strategy.
+ </p>
 </section>
 
 <section class="panel">
- <div class="eyebrow">NASA CLIMATE INTELLIGENCE</div>
- <h2>Understand your growing conditions</h2>
- <div class="metrics" style="margin:14px 0">
-  <div class="metric"><small>Historical annual rainfall</small>
-   <strong id="rainMetric">—</strong><small>NASA POWER</small></div>
-  <div class="metric"><small>Historical temperature</small>
-   <strong id="tempMetric">—</strong><small>Annual mean</small></div>
-  <div class="metric"><small>Latest observation</small>
-   <strong id="dateMetric">—</strong><small id="ageMetric">Awaiting data</small></div>
+ <div class="eyebrow">YOUR GROWING CONDITIONS</div>
+ <h2>Understand your environment</h2>
+ <p class="sub">Historical climate patterns from NASA POWER.</p>
+
+ <div class="metrics">
+  <div class="metric">
+   <small>Annual rainfall</small>
+   <strong id="rainMetric">—</strong>
+  </div>
+  <div class="metric">
+   <small>Mean temperature</small>
+   <strong id="tempMetric">—</strong>
+  </div>
+  <div class="metric">
+   <small>Observation date</small>
+   <strong id="dateMetric">—</strong>
+  </div>
  </div>
- <p id="periodLabel" class="status">Climate evidence loads after analysis.</p>
- <div class="chartgrid" style="margin-top:14px">
-  <div><h3>Monthly rainfall</h3>
-   <div class="chartbox"><canvas id="rainChart"></canvas></div></div>
-  <div><h3>Monthly temperature</h3>
-   <div class="chartbox"><canvas id="tempChart"></canvas></div></div>
+
+ <div id="extraMetrics" class="metrics"></div>
+
+ <div class="chartgrid">
+  <div>
+   <h3>Rainfall throughout the year</h3>
+   <div class="chartbox"><canvas id="rainChart"></canvas></div>
+  </div>
+  <div>
+   <h3>Temperature throughout the year</h3>
+   <div class="chartbox"><canvas id="tempChart"></canvas></div>
+  </div>
  </div>
+
  <details>
   <summary>Explore NASA Data &amp; Sources</summary>
-  <p class="info">Environmental observations are gridded estimates,
-  not measurements taken directly at individual farms.</p>
-  <a href="https://power.larc.nasa.gov/" target="_blank"
-   rel="noopener noreferrer">NASA POWER data source</a>
-  <div id="limitations" class="info"></div>
+  <p class="sub">
+   Historical environmental estimates are supplied
+   by NASA POWER. Their resolution differs from
+   individual field measurements.
+  </p>
+  <a href="https://power.larc.nasa.gov/"
+   target="_blank" rel="noopener noreferrer">
+   NASA POWER
+  </a>
+  <div id="limitations" class="sub"></div>
  </details>
 </section>
 
 <section class="panel">
  <div class="eyebrow">ASK BUMI</div>
- <h2>Your farming questions, answered</h2>
- <p class="sub">Ask about a crop, planting strategy or soil management.</p>
- <textarea id="question" placeholder="What could I grow after rice?"></textarea>
- <button id="askBtn" style="margin-top:10px">Ask BUMI ✦</button>
- <div id="answer" class="answer">Analyze your location, then ask BUMI.</div>
+ <h2>Have a farming question?</h2>
+ <p class="sub">
+  Ask about crops, rotation strategies or local conditions.
+ </p>
+ <textarea id="question"
+  placeholder="What should I consider growing after rice?"></textarea>
+ <button id="askBtn" style="margin-top:10px">
+  Ask BUMI
+ </button>
+ <div id="answer" class="answer">
+  Ask a question to get started.
+ </div>
 </section>
+
 </div>
 
 <div class="stack">
+
 <section class="panel">
- <div class="eyebrow">CROP INTELLIGENCE</div>
- <h2>Which crops look promising?</h2>
- <p class="sub">Climate-screened crop candidates for your selected location.</p>
- <div id="cropList">Analyze your farm to see results.</div>
-</section>
-<section class="panel">
- <div class="eyebrow">ROTATION PLANNER</div>
- <h2>What could you grow next?</h2>
- <p class="sub">Choose a sequence to explore it in the 3D farm.</p>
- <div id="rotationList">Rotation options appear after analysis.</div>
-</section>
-<section class="panel">
- <div class="eyebrow">FARM ACTION PLAN</div>
- <h2>Practical next steps</h2>
- <div id="activityList" class="actions" style="margin-top:12px">
-  <div class="sub">Suggestions appear after analysis.</div>
+ <div class="eyebrow">YOUR FARMING SHIFTS</div>
+ <h2>Explore what you could change</h2>
+ <div id="shiftList">
+  <p class="sub">Analyze your location to explore options.</p>
  </div>
 </section>
+
 <section class="panel">
- <div class="eyebrow">ASSESSMENT QUALITY</div>
- <h2>Understand your results</h2>
- <p class="sub">Crop compatibility scores are preliminary climate-screening
- indices, not guaranteed yield or profit predictions.</p>
+ <div class="eyebrow">CROP RECOMMENDATIONS</div>
+ <h2>Find crops that fit your land</h2>
+ <p class="sub">
+  Compare climate compatibility and planting windows.
+ </p>
+ <div id="cropList">
+  <p class="sub">Your crop shortlist will appear here.</p>
+ </div>
 </section>
+
+<section class="panel">
+ <div class="eyebrow">CROP ROTATION</div>
+ <h2>Build your crop rotation</h2>
+ <p class="sub">
+  Compare crop sequences and explore each crop in 3D.
+ </p>
+ <div id="rotationList">
+  <p class="sub">Rotation options will appear here.</p>
+ </div>
+</section>
+
+<section class="panel">
+ <div class="eyebrow">YOUR NEXT STEPS</div>
+ <h2>Your farming checklist</h2>
+ <div id="activityList" class="actions">
+  <p class="sub">Activities will appear after analysis.</p>
+ </div>
+</section>
+
 </div>
 </div>
-<footer>BUMI SHIFT · HANOVA · Sarawak Pilot<br>
-NASA POWER observations · Gemini AI explanations</footer>
+
+<footer>
+ BUMI SHIFT · Environmental data: NASA POWER<br>
+ Map imagery: Esri / OpenStreetMap contributors ·
+ Agricultural imagery: Wikimedia Commons where available
+</footer>
+
 </div>
 
 <script>
 window.addEventListener("DOMContentLoaded",()=>{
+
 const $=id=>document.getElementById(id);
-const months=["Jan","Feb","Mar","Apr","May","Jun",
- "Jul","Aug","Sep","Oct","Nov","Dec"];
+const months=[
+ "Jan","Feb","Mar","Apr","May","Jun",
+ "Jul","Aug","Sep","Oct","Nov","Dec"
+];
+
 let coords={latitude:1.46,longitude:110.49};
-let assessment=null,rotation=null,stage=0,version=0;
-let rainChart=null,tempChart=null;
-const put=(id,s)=>$(id).textContent=s;
-const fmt=(v,s="")=>v==null||!Number.isFinite(Number(v))
- ?"Unavailable":Number(v).toLocaleString("en-MY",{maximumFractionDigits:1})+s;
-function node(tag,cls,value){
+let assessment=null;
+let rotation=null;
+let stage=0;
+let version=0;
+let rainChart=null;
+let tempChart=null;
+
+const put=(id,value)=>$(id).textContent=value;
+
+function fmt(value,suffix=""){
+ return value==null||!Number.isFinite(Number(value))
+  ?"—":Number(value).toLocaleString(
+   "en-MY",{maximumFractionDigits:1}
+  )+suffix;
+}
+
+function el(tag,cls,value){
  const e=document.createElement(tag);
  if(cls)e.className=cls;
  if(value!==undefined)e.textContent=value;
  return e;
 }
+
+// Fixed crop reference library.
+// Images are requested from Wikimedia's media service.
+// Missing photos fall back to crop initials.
+
+const CROPS={
+ rice:{name:"Rice",wiki:"Rice"},
+ maize:{name:"Maize",wiki:"Maize"},
+ mung_bean:{name:"Mung bean",wiki:"Mung_bean"},
+ groundnut:{name:"Groundnut",wiki:"Peanut"},
+ soybean:{name:"Soybean",wiki:"Soybean"},
+ sweet_potato:{name:"Sweet potato",wiki:"Sweet_potato"},
+ cassava:{name:"Cassava",wiki:"Cassava"},
+ pineapple:{name:"Pineapple",wiki:"Pineapple"},
+ banana:{name:"Banana",wiki:"Banana"},
+ coconut:{name:"Coconut",wiki:"Coconut"},
+ durian:{name:"Durian",wiki:"Durian"}
+};
+
+const photoCache={};
+
+async function cropPhoto(id){
+ if(photoCache[id]!==undefined)return photoCache[id];
+
+ const crop=CROPS[id];
+ if(!crop)return null;
+
+ try{
+  const url="https://en.wikipedia.org/w/api.php?"
+   +new URLSearchParams({
+    action:"query",
+    titles:crop.wiki,
+    prop:"pageimages",
+    pithumbsize:"480",
+    format:"json",
+    origin:"*"
+   });
+
+  const response=await fetch(url);
+  if(!response.ok)throw Error("Image unavailable");
+
+  const data=await response.json();
+  const page=Object.values(data.query?.pages||{})[0];
+  photoCache[id]=page?.thumbnail?.source||null;
+ }catch(e){
+  photoCache[id]=null;
+ }
+
+ return photoCache[id];
+}
+
+// =====================================
+// SATELLITE AND LOCATION MAP
+// =====================================
+
+const map=L.map("map").setView(
+ [coords.latitude,coords.longitude],11
+);
+
+const street=L.tileLayer(
+ "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+ {maxZoom:19,attribution:"© OpenStreetMap contributors"}
+);
+
+const satellite=L.tileLayer(
+ "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+ {
+  maxZoom:19,
+  attribution:"Imagery © Esri and imagery providers"
+ }
+);
+
+satellite.addTo(map);
+
+let marker=L.marker([
+ coords.latitude,coords.longitude
+]).addTo(map);
+
+function mapMode(mode){
+ if(mode==="satellite"){
+  map.removeLayer(street);
+  satellite.addTo(map);
+ }else{
+  map.removeLayer(satellite);
+  street.addTo(map);
+ }
+
+ $("satBtn").classList.toggle(
+  "active",mode==="satellite"
+ );
+ $("streetBtn").classList.toggle(
+  "active",mode==="street"
+ );
+ $("farmBtn").classList.remove("active");
+
+ $("map").style.display="block";
+ $("farm3d").style.display="none";
+ $("rotationControls").style.display="none";
+
+ setTimeout(()=>map.invalidateSize(),100);
+}
+
+function farmMode(){
+ $("map").style.display="none";
+ $("farm3d").style.display="block";
+ $("rotationControls").style.display="block";
+
+ $("satBtn").classList.remove("active");
+ $("streetBtn").classList.remove("active");
+ $("farmBtn").classList.add("active");
+
+ window.BUMIFarm3D?.resize();
+}
+
+$("satBtn").onclick=()=>mapMode("satellite");
+$("streetBtn").onclick=()=>mapMode("street");
+$("farmBtn").onclick=farmMode;
+
+function choose(lat,lon){
+ if(lat<0.5||lat>5.1||lon<109.5||lon>115.5){
+  put("status","Please choose a location within the Sarawak pilot area.");
+  return;
+ }
+
+ coords={latitude:lat,longitude:lon};
+ marker.setLatLng([lat,lon]);
+ map.setView([lat,lon],12);
+
+ version++;
+ assessment=null;
+ rotation=null;
+
+ put("locationLabel",
+  `Selected: ${lat.toFixed(4)}° N, ${lon.toFixed(4)}° E`
+ );
+
+ put("status","Location updated. Analyze to refresh results.");
+}
+
+map.on("click",e=>{
+ choose(e.latlng.lat,e.latlng.lng);
+});
+
+$("searchBtn").onclick=async()=>{
+ const query=$("place").value.trim();
+ if(!query)return;
+
+ $("searchBtn").disabled=true;
+ put("status","Finding your location...");
+
+ try{
+  const url="https://nominatim.openstreetmap.org/search?"
+   +new URLSearchParams({
+    q:query+", Sarawak, Malaysia",
+    format:"json",
+    limit:"5"
+   });
+
+  const r=await fetch(url);
+  if(!r.ok)throw Error("Location search failed");
+
+  const places=await r.json();
+  const match=places.find(p=>{
+   const a=Number(p.lat),b=Number(p.lon);
+   return a>=0.5&&a<=5.1&&b>=109.5&&b<=115.5;
+  });
+
+  if(!match)throw Error("Location not found in the pilot area");
+
+  choose(Number(match.lat),Number(match.lon));
+
+ }catch(e){
+  put("status",e.message);
+ }finally{
+  $("searchBtn").disabled=false;
+ }
+};
+
+// =====================================
+// API CONNECTION
+// =====================================
+
+async function api(path,point){
+ const r=await fetch(
+  path+"?"+new URLSearchParams(point)
+ );
+
+ const d=await r.json().catch(()=>({}));
+
+ if(!r.ok){
+  throw Error(d.detail||`Server error ${r.status}`);
+ }
+
+ return d;
+}
+
+// =====================================
+// CLIMATE CHARTS
+// =====================================
+
+function drawChart(id,old,values,label,color){
+ old?.destroy();
+
+ if(!window.Chart)return null;
+
+ return new Chart($(id),{
+  type:"bar",
+  data:{
+   labels:months,
+   datasets:[{
+    label,
+    data:values,
+    backgroundColor:color,
+    borderRadius:5
+   }]
+  },
+  options:{
+   responsive:true,
+   maintainAspectRatio:false,
+   plugins:{
+    legend:{labels:{color:"#10294d"}}
+   },
+   scales:{
+    x:{ticks:{color:"#526a87"},grid:{display:false}},
+    y:{ticks:{color:"#526a87"}}
+   }
+  }
+ });
+}
+
+function renderCharts(rows){
+ const ordered=months.map((_,i)=>
+  rows.find(r=>Number(r.month)===i+1)||{}
+ );
+
+ rainChart=drawChart(
+  "rainChart",rainChart,
+  ordered.map(r=>r.rainfall_mm??null),
+  "Rainfall (mm)","#269ed6"
+ );
+
+ tempChart=drawChart(
+  "tempChart",tempChart,
+  ordered.map(r=>r.temperature_c??null),
+  "Temperature (°C)","#e9a12a"
+ );
+}
+
+function addMetric(name,value){
+ if(value==null||!Number.isFinite(Number(value)))return;
+
+ const card=el("div","metric");
+ card.append(
+  el("small","",name),
+  el("strong","",fmt(value))
+ );
+ $("extraMetrics").append(card);
+}
+
+// =====================================
+// CROP CARDS
+// =====================================
+
 function showCrop(id,name,period){
  put("fieldCrop",name);
  put("fieldPeriod",period);
- if(window.BUMIFarm3D)window.BUMIFarm3D.showCrop(id);
+ window.BUMIFarm3D?.showCrop(id);
 }
-function setStage(){
- if(!rotation)return;
- const id=rotation.crop_ids[stage];
- showCrop(id,rotation.crops[stage],"Rotation period "+(stage+1));
- put("farmNote",rotation.crops.join(" → "));
- document.querySelectorAll("[data-stage]").forEach(b=>
-  b.classList.toggle("active",Number(b.dataset.stage)===stage));
-}
-document.querySelectorAll("[data-stage]").forEach(b=>{
- b.onclick=()=>{stage=Number(b.dataset.stage);setStage()};
-});
-$("resetCamera").onclick=()=>window.BUMIFarm3D?.resetCamera();
 
-let map,marker;
-if(window.L){
- map=L.map("map").setView([coords.latitude,coords.longitude],10);
- L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
- {maxZoom:18,attribution:"© OpenStreetMap contributors"}).addTo(map);
- marker=L.marker([coords.latitude,coords.longitude]).addTo(map);
- map.on("click",e=>choose(e.latlng.lat,e.latlng.lng));
- $("map").closest("details").addEventListener("toggle",
- ()=>setTimeout(()=>map.invalidateSize(),150));
-}
-function choose(lat,lon){
- if(lat<0.5||lat>5.1||lon<109.5||lon>115.5){
-  put("status","Select a location inside the Sarawak pilot area.");
-  return;
- }
- coords={latitude:lat,longitude:lon};
- marker?.setLatLng([lat,lon]);
- version++;
- assessment=null;rotation=null;
- put("locationLabel",`Selected: ${lat.toFixed(4)}° N, ${lon.toFixed(4)}° E`);
- put("status","Location changed. Select Analyze Farm.");
- put("cropList","Analyze this location to refresh crop results.");
- put("rotationList","Analysis required for the new location.");
- put("activityList","");
-}
-$("searchBtn").onclick=async()=>{
- const q=$("place").value.trim();
- if(!q)return;
- $("searchBtn").disabled=true;
- try{
-  const url="https://nominatim.openstreetmap.org/search?format=json&limit=5&q="
-   +encodeURIComponent(q+", Sarawak, Malaysia");
-  const r=await fetch(url);
-  if(!r.ok)throw Error("Location search unavailable");
-  const results=await r.json();
-  const p=results.find(x=>{
-   const a=Number(x.lat),b=Number(x.lon);
-   return a>=0.5&&a<=5.1&&b>=109.5&&b<=115.5;
-  });
-  if(!p)throw Error("No matching location found in the pilot area");
-  choose(Number(p.lat),Number(p.lon));
-  map?.setView([Number(p.lat),Number(p.lon)],12);
- }catch(e){put("status",e.message)}
- finally{$("searchBtn").disabled=false}
-};
-async function api(path,point){
- const r=await fetch(path+"?"+new URLSearchParams(point));
- const d=await r.json().catch(()=>({}));
- if(!r.ok)throw Error(d.detail||`Server error ${r.status}`);
- return d;
-}
-function drawChart(id,old,values,label,color){
- old?.destroy();
- if(!window.Chart)return null;
- return new Chart($(id),{
-  type:"bar",
-  data:{labels:months,datasets:[{label,data:values,
-   backgroundColor:color,borderRadius:5}]},
-  options:{responsive:true,maintainAspectRatio:false,
-   plugins:{legend:{labels:{color:"#e9f0ff"}}},
-   scales:{x:{ticks:{color:"#c4d2ea"},grid:{display:false}},
-    y:{ticks:{color:"#c4d2ea"}}}}
- });
-}
-function renderCharts(rows){
- const ordered=months.map((_,i)=>rows.find(r=>Number(r.month)===i+1)||{});
- rainChart=drawChart("rainChart",rainChart,
-  ordered.map(r=>r.rainfall_mm??null),"Rainfall (mm)","#55e1f1");
- tempChart=drawChart("tempChart",tempChart,
-  ordered.map(r=>r.temperature_c??null),"Temperature (°C)","#ffd17b");
-}
 function renderCrops(crops){
- const root=$("cropList");root.replaceChildren();
- if(!crops.length){root.textContent="No climate-screening results available.";return}
- crops.slice(0,11).forEach((c,i)=>{
-  const card=node("div","crop"),info=node("div");
-  info.append(node("strong","",`${i+1}. ${c.name}`),
-   node("small","",`Climate index: ${fmt(c.climate_score," / 100")}`),
-   node("small","",c.suggested_start_month
-    ?`Candidate start: ${months[c.suggested_start_month-1]}`
-    :"Planting window unavailable"));
-  const b=node("button","","Explore");
-  b.onclick=()=>{
-   document.querySelectorAll(".crop").forEach(x=>x.classList.remove("active"));
+ const root=$("cropList");
+ root.replaceChildren();
+
+ crops.slice(0,11).forEach((crop,index)=>{
+  const card=el("div","crop");
+  const photo=el("img","cropPhoto");
+  photo.alt=crop.name;
+  photo.loading="lazy";
+
+  photo.onerror=()=>{
+   photo.style.display="none";
+  };
+
+  cropPhoto(crop.id).then(src=>{
+   if(src)photo.src=src;
+   else photo.style.display="none";
+  });
+
+  const info=el("div");
+
+  info.append(
+   el("strong","",`${index+1}. ${crop.name}`),
+   el("small","",
+    `Climate compatibility: ${fmt(crop.climate_score," / 100")}`
+   ),
+   el("small","",
+    crop.suggested_start_month
+     ?`Potential planting month: ${months[crop.suggested_start_month-1]}`
+     :"Planting window not determined"
+   )
+  );
+
+  const button=el("button","","Explore Crop");
+
+  button.onclick=()=>{
+   document.querySelectorAll(".crop")
+    .forEach(c=>c.classList.remove("active"));
+
    card.classList.add("active");
-   showCrop(c.id,c.name,"Selected crop");
-   put("farmNote",`Explore ${c.name}. Climate screening: ${fmt(c.climate_score," / 100")}.`);
+
+   showCrop(crop.id,crop.name,"Selected crop");
+   farmMode();
   };
-  card.append(info,b);root.append(card);
- });
-}
-function renderRotations(items){
- const root=$("rotationList");root.replaceChildren();
- if(!items.length){root.textContent="No rotation options available.";return}
- items.forEach((r,i)=>{
-  const b=node("button","rotation");
-  b.append(node("strong","",r.crops.join(" → ")),
-   node("small","",`Screening index: ${fmt(r.screening_index," / 100")}`),
-   node("small","",`Approximate duration: ${r.approx_total_months} months`));
-  b.onclick=()=>{
-   document.querySelectorAll(".rotation").forEach(x=>x.classList.remove("active"));
-   b.classList.add("active");rotation=r;stage=0;setStage();
-  };
-  root.append(b);
-  if(i===0)b.click();
- });
-}
-function renderActivities(items){
- const root=$("activityList");root.replaceChildren();
- items.forEach((a,i)=>{
-  const card=node("div","action");
-  card.style.borderLeftColor=["#55e1f1","#b39aff","#68efbb","#ffd17b"][i%4];
-  card.append(node("strong","",a.title),
-   node("p","",a.reason||a.description||""));
+
+  info.append(button);
+  card.append(photo,info);
   root.append(card);
  });
 }
+
+// =====================================
+// ROTATION AND 3D TIMELINE
+// =====================================
+
+function updateStage(){
+ if(!rotation)return;
+
+ const id=rotation.crop_ids[stage];
+ const name=rotation.crops[stage];
+
+ showCrop(
+  id,name,
+  `Crop ${stage+1} of ${rotation.crops.length}`
+ );
+
+ document.querySelectorAll("[data-stage]")
+  .forEach(b=>b.classList.toggle(
+   "active",Number(b.dataset.stage)===stage
+  ));
+}
+
+function renderTimeline(){
+ const root=$("timeline");
+ root.replaceChildren();
+
+ if(!rotation)return;
+
+ rotation.crops.forEach((name,i)=>{
+  const b=el("button","",`${i+1}. ${name}`);
+  b.dataset.stage=i;
+
+  b.onclick=()=>{
+   stage=i;
+   updateStage();
+  };
+
+  root.append(b);
+ });
+
+ updateStage();
+}
+
+function renderRotations(items){
+ const root=$("rotationList");
+ root.replaceChildren();
+
+ items.forEach((r,i)=>{
+  const b=el("button","rotation");
+
+  b.append(
+   el("strong","",r.crops.join(" → ")),
+   el("small","",
+    `Comparison score: ${fmt(r.screening_index," / 100")}`
+   ),
+   el("small","",
+    `Approximate sequence duration: ${r.approx_total_months} months`
+   )
+  );
+
+  b.onclick=()=>{
+   document.querySelectorAll(".rotation")
+    .forEach(x=>x.classList.remove("active"));
+
+   b.classList.add("active");
+
+   rotation=r;
+   stage=0;
+   renderTimeline();
+   farmMode();
+  };
+
+  root.append(b);
+
+  if(i===0){
+   rotation=r;
+   stage=0;
+   renderTimeline();
+   b.classList.add("active");
+  }
+ });
+}
+
+// =====================================
+// FARMING SHIFTS
+// =====================================
+
+function renderShifts(result){
+ const root=$("shiftList");
+ root.replaceChildren();
+
+ const rotations=result.rotation_options||[];
+ const crops=result.crop_recommendations||[];
+
+ const shifts=[];
+
+ if(rotations.length){
+  shifts.push({
+   title:"Explore crop diversification",
+   text:"Consider "+rotations[0].crops.join(" → ")
+    +" as a candidate sequence. Compare drainage, "
+    +"planting windows and management needs."
+  });
+ }
+
+ const first=crops.find(c=>c.suggested_start_month);
+
+ if(first){
+  shifts.push({
+   title:"Review your planting calendar",
+   text:`For ${first.name}, historical climate screening `
+    +`identifies ${months[first.suggested_start_month-1]} `
+    +"as a candidate starting month."
+  });
+ }
+
+ shifts.push({
+  title:"Protect soil between crops",
+  text:"Explore appropriate residue retention, mulching "
+   +"and ground cover to reduce exposed-soil periods."
+ });
+
+ shifts.forEach((s,i)=>{
+  const card=el("div","shift");
+  card.style.borderLeft=`4px solid ${
+   ["#216ad6","#7658cb","#079f9b"][i%3]
+  }`;
+  card.append(
+   el("h3","",s.title),
+   el("p","",s.text)
+  );
+  root.append(card);
+ });
+}
+
+// =====================================
+// FARM ACTIONS
+// =====================================
+
+function renderActivities(items){
+ const root=$("activityList");
+ root.replaceChildren();
+
+ items.forEach((a,i)=>{
+  const card=el("div","action");
+
+  card.style.borderLeftColor=[
+   "#216ad6","#079f9b","#7658cb","#e9a12a"
+  ][i%4];
+
+  card.append(
+   el("strong","",a.title),
+   el("p","",a.reason||a.description||"")
+  );
+
+  root.append(card);
+ });
+}
+
+// =====================================
+// ANALYZE LOCATION
+// =====================================
+
 $("analyzeBtn").onclick=async()=>{
- const btn=$("analyzeBtn"),ticket=++version,point={...coords};
- btn.disabled=true;put("status","Analyzing historical NASA observations...");
+ const btn=$("analyzeBtn");
+ const ticket=++version;
+ const point={...coords};
+
+ btn.disabled=true;
+ put("status","Analyzing NASA climate and farming options...");
+
  try{
   const result=await api("/recommendations",point);
   if(ticket!==version)return;
+
   assessment=result;
+
   renderCrops(result.crop_recommendations||[]);
   renderRotations(result.rotation_options||[]);
   renderActivities(result.suggested_activities||[]);
+  renderShifts(result);
   renderCharts(result.monthly_climatology||[]);
-  const period=result.climate_period||[];
-  put("periodLabel",`NASA historical period: ${period[0]||"?"}–${period[1]||"?"}`);
-  const notes=$("limitations");notes.replaceChildren();
-  (result.limitations||[]).forEach(t=>notes.append(node("p","",t)));
-  put("status",`Analysis complete: ${(result.crop_recommendations||[]).length} crop candidates.`);
+
+  const notes=$("limitations");
+  notes.replaceChildren();
+
+  (result.limitations||[]).forEach(n=>{
+   notes.append(el("p","",n));
+  });
+
+  put("status","Analysis complete. Explore your results below.");
+
   api("/climate/history",point).then(h=>{
    if(ticket!==version)return;
-   put("rainMetric",fmt(h.summary?.mean_annual_rainfall_mm," mm"));
-   put("tempMetric",fmt(h.summary?.mean_temperature_c," °C"));
-  }).catch(e=>put("status","Climate summary unavailable: "+e.message));
+
+   const s=h.summary||{};
+
+   put("rainMetric",fmt(
+    s.mean_annual_rainfall_mm," mm"
+   ));
+
+   put("tempMetric",fmt(
+    s.mean_temperature_c," °C"
+   ));
+
+   const monthly=h.monthly||[];
+
+   $("extraMetrics").replaceChildren();
+
+   const avg=key=>{
+    const values=monthly.map(r=>r[key])
+     .filter(v=>v!=null&&Number.isFinite(Number(v)));
+
+    return values.length
+     ?values.reduce((a,b)=>a+Number(b),0)/values.length
+     :null;
+   };
+
+   const indicators=[
+    ["Relative humidity (%)",avg("humidity_percent")],
+    ["Solar irradiation (kWh/m²/day)",avg("solar_kwh_m2_day")],
+    ["Maximum temperature (°C)",avg("maximum_temperature_c")],
+    ["Minimum temperature (°C)",avg("minimum_temperature_c")]
+   ];
+
+   indicators.forEach(([name,value])=>{
+    if(value!=null){
+     const card=el("div","metric");
+     card.append(
+      el("small","",name),
+      el("strong","",fmt(value))
+     );
+     $("extraMetrics").append(card);
+    }
+   });
+
+  }).catch(()=>{});
+
   api("/nasa",point).then(n=>{
    if(ticket!==version)return;
    put("dateMetric",n.latest_observation||"—");
-   put("ageMetric",n.data_age_days==null?"Freshness unknown":`${n.data_age_days} days old`);
   }).catch(()=>{});
+
  }catch(e){
-  put("status","Analysis unavailable: "+e.message);
-  put("cropList","Could not retrieve recommendations.");
- }finally{if(ticket===version)btn.disabled=false}
+  put("status","Analysis failed: "+e.message);
+ }finally{
+  if(ticket===version)btn.disabled=false;
+ }
 };
-function localAnswer(q){
- if(!assessment)return null;
- if(!/crop|plant|grow|rice|rotation|recommend|padi|tanam|selepas|next/i.test(q))return null;
- const crops=(assessment.crop_recommendations||[]).filter(c=>c.climate_score!=null);
- const r=(assessment.rotation_options||[])[0];
- return "CROPS TO EXPLORE\n"+
-  crops.slice(0,3).map((c,i)=>`${i+1}. ${c.name} — climate index ${fmt(c.climate_score," / 100")}`).join("\n")+
-  "\n\nROTATION TO EXPLORE\n"+(r?r.crops.join(" → "):"Unavailable")+
-  "\n\nThese are preliminary climate comparisons. Check field drainage, soil and management feasibility.";
-}
+
+// =====================================
+// GEMINI ASSISTANT
+// =====================================
+
 $("askBtn").onclick=async()=>{
- const q=$("question").value.trim();if(!q)return;
- const b=$("askBtn");b.disabled=true;
- const local=localAnswer(q);
- if(local){put("answer",local);b.disabled=false;return}
- put("answer","BUMI is reviewing NASA evidence...");
+ const question=$("question").value.trim();
+ if(!question)return;
+
+ const btn=$("askBtn");
+ btn.disabled=true;
+
+ put("answer","BUMI is reviewing your question...");
+
  try{
-  const r=await fetch("/ask",{method:"POST",
+  const response=await fetch("/ask",{
+   method:"POST",
    headers:{"Content-Type":"application/json"},
-   body:JSON.stringify({question:q,...coords,drainage:"unknown",soil_ph:null})});
-  const d=await r.json().catch(()=>({}));
-  if(!r.ok)throw Error(d.detail||"AI unavailable");
-  put("answer",d.answer||"No response returned.");
- }catch(e){put("answer","BUMI unavailable: "+e.message)}
- finally{b.disabled=false}
+   body:JSON.stringify({
+    question,
+    latitude:coords.latitude,
+    longitude:coords.longitude,
+    drainage:"unknown",
+    soil_ph:null
+   })
+  });
+
+  const data=await response.json().catch(()=>({}));
+
+  if(!response.ok){
+   throw Error(data.detail||"AI service unavailable");
+  }
+
+  put("answer",data.answer||"No answer returned.");
+
+ }catch(e){
+  put("answer","BUMI is temporarily unavailable: "+e.message);
+ }finally{
+  btn.disabled=false;
+ }
 };
+
 });
 </script>
 
 <script type="module">
 import * as THREE from "three";
 import {OrbitControls} from "three/addons/controls/OrbitControls.js";
-import {GLTFLoader} from "three/addons/loaders/GLTFLoader.js";
 
 const host=document.getElementById("farm3d");
 const scene=new THREE.Scene();
-scene.background=new THREE.Color("#b6dce9");
-scene.fog=new THREE.Fog("#b6dce9",32,65);
+scene.background=new THREE.Color("#b8dfec");
 
-const camera=new THREE.PerspectiveCamera(43,1,0.1,100);
-camera.position.set(16,13,19);
+const camera=new THREE.PerspectiveCamera(45,1,0.1,100);
+camera.position.set(15,13,19);
+
 const renderer=new THREE.WebGLRenderer({antialias:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.shadowMap.enabled=true;
-renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.outputColorSpace=THREE.SRGBColorSpace;
-renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=1.35;
 host.prepend(renderer.domElement);
 
 const controls=new OrbitControls(camera,renderer.domElement);
 controls.enableDamping=true;
-controls.target.set(0,0.4,0);
-controls.minDistance=6;
-controls.maxDistance=36;
-controls.maxPolarAngle=Math.PI*.48;
+controls.target.set(0,0,0);
 
-scene.add(new THREE.HemisphereLight(0xffffff,0x658a77,2.1));
-const sun=new THREE.DirectionalLight(0xfff2d5,2.5);
-sun.position.set(-8,17,10);sun.castShadow=true;
-sun.shadow.mapSize.set(2048,2048);
-sun.shadow.camera.left=-18;sun.shadow.camera.right=18;
-sun.shadow.camera.top=18;sun.shadow.camera.bottom=-18;
+scene.add(new THREE.HemisphereLight(0xffffff,0x668c72,2));
+
+const sun=new THREE.DirectionalLight(0xfff1d5,2.4);
+sun.position.set(-8,15,10);
+sun.castShadow=true;
 scene.add(sun);
 
-const mat=c=>new THREE.MeshStandardMaterial({color:c,roughness:.82});
+const mat=c=>new THREE.MeshStandardMaterial({
+ color:c,roughness:.8
+});
+
 const M={
- grass:mat("#65a65e"),soil:mat("#86613f"),dark:mat("#68452d"),
- path:mat("#d6b787"),rice:mat("#4c9d47"),light:mat("#83c75c"),
- grain:mat("#e3c36c"),maize:mat("#3a9250"),corn:mat("#f2ca59"),
- legume:mat("#389a5b"),leaf:mat("#6cbb62"),
- trunk:mat("#76533b"),tree:mat("#347d4a"),
- wall:mat("#f1d7b0"),roof:mat("#b5694b"),
- water:new THREE.MeshStandardMaterial({color:"#48b7d7",
-  roughness:.22,metalness:.12,transparent:true,opacity:.88})
+ grass:mat("#68a45c"),
+ soil:mat("#845d3f"),
+ path:mat("#d9bb8c"),
+ rice:mat("#4e9c49"),
+ maize:mat("#3a8f4d"),
+ leaf:mat("#63b65f"),
+ grain:mat("#e5c66d"),
+ trunk:mat("#76513b"),
+ tree:mat("#34804b"),
+ fruit:mat("#e5b65c"),
+ water:mat("#46b8d9")
 };
+
 function mesh(g,m,p=scene){
- const o=new THREE.Mesh(g,m);o.castShadow=true;o.receiveShadow=true;p.add(o);return o;
+ const o=new THREE.Mesh(g,m);
+ o.castShadow=true;
+ o.receiveShadow=true;
+ p.add(o);
+ return o;
 }
+
 function box(w,h,d,m,x,y,z,p=scene){
- const o=mesh(new THREE.BoxGeometry(w,h,d),m,p);o.position.set(x,y,z);return o;
+ const o=mesh(new THREE.BoxGeometry(w,h,d),m,p);
+ o.position.set(x,y,z);
+ return o;
 }
-function stem(x,y,z,h,m,p=scene){
- const o=mesh(new THREE.CylinderGeometry(.025,.045,h,6),m,p);
- o.position.set(x,y,z);return o;
-}
+
 function ball(x,y,z,r,m,p=scene){
- const o=mesh(new THREE.SphereGeometry(r,8,6),m,p);o.position.set(x,y,z);return o;
+ const o=mesh(new THREE.SphereGeometry(r,8,6),m,p);
+ o.position.set(x,y,z);
+ return o;
 }
-function leaf(x,y,z,w,h,m,p,rz=0){
- const o=mesh(new THREE.SphereGeometry(1,8,6),m,p);
- o.scale.set(w,h,w*.5);o.position.set(x,y,z);o.rotation.z=rz;return o;
+
+function stem(x,y,z,h,m,p=scene){
+ const o=mesh(
+  new THREE.CylinderGeometry(.035,.05,h,6),
+  m,p
+ );
+ o.position.set(x,y,z);
+ return o;
 }
-box(29,.65,24,M.grass,0,-.55,0);
-box(21,.3,17,M.soil,0,-.1,0);
-box(1.2,.12,17,M.path,0,.13,0);
-box(21,.12,1.1,M.path,0,.13,0);
-box(.8,.1,17,M.water,-9.6,.12,0);
-box(.8,.1,17,M.water,9.6,.12,0);
+
+box(27,.7,22,M.grass,0,-.5,0);
+box(20,.3,16,M.soil,0,-.1,0);
+box(1,.12,16,M.path,0,.12,0);
+box(20,.12,1,M.path,0,.12,0);
+box(.7,.12,16,M.water,-9.3,.12,0);
+box(.7,.12,16,M.water,9.3,.12,0);
 
 const fields=[];
-for(const [x,z] of [[-4.8,-4.1],[4.8,-4.1],[-4.8,4.1],[4.8,4.1]]){
- box(7.5,.4,6.2,M.dark,x,.18,z);
- box(7.1,.08,5.8,M.soil,x,.42,z);
- const group=new THREE.Group();
- group.position.set(x,.47,z);scene.add(group);fields.push(group);
-}
-function tree(x,z,s=1){
- stem(x,.85*s,z,1.7*s,M.trunk);
- ball(x,2*s,z,.85*s,M.tree);
- ball(x-.4*s,1.8*s,z,.6*s,M.leaf);
-}
-for(let i=0;i<6;i++){tree(-12,-9+i*3.5,.85);tree(12,-9+i*3.5,.85)}
-box(2.5,1.5,2.2,M.wall,-10.8,.8,-9);
-const roof=box(3,.32,2.8,M.roof,-10.8,1.7,-9);roof.rotation.z=-.14;
 
-function rice(p,x,z){
- for(let i=0;i<5;i++){
-  const a=i*Math.PI*2/5;
-  const dx=Math.cos(a)*.09,dz=Math.sin(a)*.09;
-  stem(x+dx,.35,z+dz,.68,M.rice,p);
-  leaf(x+dx*2,.48,z+dz*2,.10,.34,
-   i%2?M.light:M.rice,p,Math.cos(a)*.55);
- }
- for(let i=0;i<4;i++)ball(x+i*.045-.07,.75,z,.045,M.grain,p);
+for(const [x,z] of [
+ [-4.6,-4],[4.6,-4],
+ [-4.6,4],[4.6,4]
+]){
+ box(7.3,.35,6,M.soil,x,.22,z);
+
+ const group=new THREE.Group();
+ group.position.set(x,.45,z);
+ scene.add(group);
+ fields.push(group);
 }
-function maize(p,x,z){
- stem(x,.85,z,1.7,M.maize,p);
- for(let i=0;i<7;i++){
-  const a=i*2.4;
-  const o=leaf(x+Math.cos(a)*.28,.5+i*.16,z+Math.sin(a)*.28,
-   .45,.09,M.maize,p,Math.cos(a)*.6);
-  o.rotation.y=a;
+
+function plant(parent,x,z,id){
+ const leaf=(a,b,c,r,m=M.leaf)=>{
+  const o=ball(a,b,c,r,m,parent);
+  o.scale.y=.35;
+  return o;
+ };
+
+ if(id==="rice"){
+  for(let i=0;i<5;i++){
+   stem(x+(i-2)*.04,.35,z,.7,M.rice,parent);
+   leaf(x+(i-2)*.07,.5,z,.13);
+  }
+  ball(x,.77,z,.08,M.grain,parent);
  }
- ball(x+.14,1.08,z,.14,M.corn,p);
- for(let i=0;i<5;i++)stem(x+(i-2)*.04,1.8,z,.35,M.grain,p);
-}
-function legume(p,x,z){
- stem(x,.28,z,.55,M.legume,p);
- for(let i=0;i<3;i++){
-  const a=i*2*Math.PI/3;
-  for(let j=0;j<3;j++){
-   leaf(x+Math.cos(a)*(j+1)*.13,.34+j*.06,
-    z+Math.sin(a)*(j+1)*.13,.16,.055,M.leaf,p);
+ else if(id==="maize"){
+  stem(x,.85,z,1.7,M.maize,parent);
+  for(let i=0;i<6;i++){
+   const a=i*Math.PI/3;
+   leaf(x+Math.cos(a)*.3,.5+i*.18,
+    z+Math.sin(a)*.3,.28);
+  }
+  ball(x+.15,1.1,z,.15,M.grain,parent);
+ }
+ else if(id==="pineapple"){
+  for(let i=0;i<9;i++){
+   const a=i*Math.PI*2/9;
+   const o=leaf(x+Math.cos(a)*.25,.3,
+    z+Math.sin(a)*.25,.26);
+   o.scale.set(.45,1.4,.45);
+  }
+  ball(x,.5,z,.22,M.fruit,parent);
+ }
+ else if(id==="banana"){
+  stem(x,.9,z,1.8,M.trunk,parent);
+  for(let i=0;i<7;i++){
+   const a=i*Math.PI*2/7;
+   const o=leaf(x+Math.cos(a)*.6,1.8,
+    z+Math.sin(a)*.6,.65);
+   o.scale.set(1.5,.12,.6);
+  }
+  ball(x+.35,1.3,z,.18,M.fruit,parent);
+ }
+ else if(id==="coconut"){
+  stem(x,1.3,z,2.6,M.trunk,parent);
+  for(let i=0;i<9;i++){
+   const a=i*Math.PI*2/9;
+   const o=leaf(x+Math.cos(a)*.8,2.7,
+    z+Math.sin(a)*.8,.7);
+   o.scale.set(1.6,.13,.45);
+  }
+  ball(x+.2,2.45,z,.2,M.fruit,parent);
+ }
+ else if(id==="durian"){
+  stem(x,.9,z,1.8,M.trunk,parent);
+  ball(x,2,z,.95,M.tree,parent);
+  for(let i=0;i<4;i++){
+   const a=i*Math.PI/2;
+   ball(x+Math.cos(a)*.5,1.55,
+    z+Math.sin(a)*.5,.16,M.fruit,parent);
   }
  }
- for(let i=0;i<2;i++){
-  const pod=stem(x+.18,.25+i*.13,z,.23,M.legume,p);
-  pod.rotation.z=.6;
+ else if(id==="cassava"){
+  stem(x,.8,z,1.5,M.trunk,parent);
+  for(let i=0;i<8;i++){
+   const a=i*Math.PI/4;
+   const o=leaf(x+Math.cos(a)*.48,1.5,
+    z+Math.sin(a)*.48,.24);
+   o.scale.set(1.6,.2,.5);
+  }
  }
-}
-function root(p,x,z){
- for(let i=0;i<6;i++){
-  const a=i*Math.PI/3;
-  leaf(x+Math.cos(a)*.25,.18,z+Math.sin(a)*.25,
-   .23,.055,M.leaf,p);
+ else if(id==="sweet_potato"){
+  for(let i=0;i<7;i++){
+   const a=i*Math.PI*2/7;
+   leaf(x+Math.cos(a)*.32,.13,
+    z+Math.sin(a)*.32,.25);
+  }
  }
-}
-function orchard(p,x,z){
- stem(x,.7,z,1.3,M.trunk,p);
- ball(x,1.55,z,.65,M.tree,p);
- ball(x-.25,1.4,z,.45,M.leaf,p);
-}
-const loader=new GLTFLoader();
-const modelCache=new Map();
-const modelNames={
- rice:"rice",maize:"maize",mung_bean:"mung_bean",
- groundnut:"groundnut",soybean:"soybean",
- sweet_potato:"sweet_potato",cassava:"cassava",
- pineapple:"pineapple",banana:"banana",
- coconut:"coconut",durian:"durian"
-};
-function classify(id){
- if(id==="rice")return "rice";
- if(id==="maize")return "maize";
- if(["mung_bean","groundnut","soybean"].includes(id))return "legume";
- if(["banana","coconut","durian"].includes(id))return "orchard";
- return "root";
-}
-let selectionToken=0;
-function populate(id,model=null){
- const type=classify(id);
- for(const field of fields){
-  const old=[...field.children];
-  old.forEach(o=>field.remove(o));
-  // Shared model geometries are retained in cache.
-  // Procedural geometries are disposed separately.
-  old.forEach(o=>{
-   if(o.userData.procedural){
-    o.traverse(child=>{
-     if(child.isMesh)child.geometry.dispose();
-    });
-   }
-  });
-  const layer=new THREE.Group();
-  layer.userData.procedural=!model;
-  field.add(layer);
-  const spacing=model?(type==="orchard"?2.4:1.2):
-   ({rice:.68,maize:1.15,legume:.9,root:.9,orchard:2.5}[type]);
-  for(let x=-2.7;x<=2.7;x+=spacing){
-   for(let z=-2.1;z<=2.1;z+=spacing){
-    if(model){
-     const clone=model.clone(true);
-     clone.position.set(x,0,z);
-     clone.scale.setScalar(type==="orchard"?.9:.65);
-     layer.add(clone);
-    }else if(type==="rice")rice(layer,x,z);
-    else if(type==="maize")maize(layer,x,z);
-    else if(type==="legume")legume(layer,x,z);
-    else if(type==="orchard")orchard(layer,x,z);
-    else root(layer,x,z);
-   }
+ else if(id==="groundnut"){
+  for(let i=0;i<6;i++){
+   const a=i*Math.PI/3;
+   leaf(x+Math.cos(a)*.2,.22,
+    z+Math.sin(a)*.2,.18);
+  }
+ }
+ else if(id==="soybean"){
+  stem(x,.45,z,.85,M.trunk,parent);
+  for(let i=0;i<6;i++){
+   const a=i*Math.PI/3;
+   leaf(x+Math.cos(a)*.23,.3+i*.07,
+    z+Math.sin(a)*.23,.19);
+  }
+  ball(x+.15,.4,z,.07,M.fruit,parent);
+ }
+ else{
+  stem(x,.3,z,.6,M.trunk,parent);
+  for(let i=0;i<5;i++){
+   const a=i*Math.PI*2/5;
+   leaf(x+Math.cos(a)*.2,.35,
+    z+Math.sin(a)*.2,.15);
   }
  }
 }
+
 function showCrop(id){
- const token=++selectionToken;
- populate(id);
- if(modelCache.has(id)){
-  populate(id,modelCache.get(id));
-  return;
- }
- // Optional GLB assets. Missing assets leave the
- // working procedural scene visible.
- const file=modelNames[id];
- if(!file)return;
- loader.load("/static/models/"+file+".glb",gltf=>{
-  modelCache.set(id,gltf.scene);
-  if(token===selectionToken)populate(id,gltf.scene);
- },undefined,()=>{});
+ const spacing=[
+  "banana","coconut","durian"
+ ].includes(id)?2.2:
+ id==="maize"?1.1:.8;
+
+ fields.forEach(field=>{
+  field.traverse(o=>{
+   if(o.isMesh)o.geometry.dispose();
+  });
+  field.clear();
+
+  for(let x=-2.6;x<=2.6;x+=spacing){
+   for(let z=-2.1;z<=2.1;z+=spacing){
+    plant(field,x,z,id);
+   }
+  }
+ });
 }
+
 window.BUMIFarm3D={
  showCrop,
  resetCamera(){
-  camera.position.set(16,13,19);
-  controls.target.set(0,.4,0);
+  camera.position.set(15,13,19);
+  controls.target.set(0,0,0);
   controls.update();
- }
+ },
+ resize
 };
+
 showCrop("rice");
+
+document.getElementById("resetCamera").onclick=()=>{
+ window.BUMIFarm3D.resetCamera();
+};
+
 function resize(){
- const w=host.clientWidth,h=host.clientHeight;
+ const w=host.clientWidth;
+ const h=host.clientHeight;
  if(!w||!h)return;
- camera.aspect=w/h;camera.updateProjectionMatrix();
+ camera.aspect=w/h;
+ camera.updateProjectionMatrix();
  renderer.setSize(w,h);
 }
+
 new ResizeObserver(resize).observe(host);
 resize();
+
 function animate(){
  requestAnimationFrame(animate);
  controls.update();
@@ -685,5 +1316,6 @@ function animate(){
 }
 animate();
 </script>
+
 </body>
 </html>
