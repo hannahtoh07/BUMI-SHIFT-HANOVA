@@ -1,440 +1,928 @@
 
 /*
- BUMI SHIFT — Interactive 3D Farm
- HANOVA | Sarawak
+ BUMI SHIFT 6.6
+ Interactive 3D Farming SHIFT Viewer
 
- Works with the existing index.html.
- No backend changes required.
+ Compatible with existing static/index.html.
 
- This is a 3D scenario viewer, not a
- measured reconstruction of an actual farm.
+ Features:
+ - Eleven distinguishable crop models
+ - Crop-specific planting arrangements
+ - Rice paddy versus dryland visualization
+ - Soil cover and water-management context
+ - Interactive rotation-stage switching
+ - Orbit, zoom and camera reset
+
+ This is a visual management scenario,
+ not a measured farm reconstruction.
 */
 
-import * as THREE from
- "https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js";
-
+import * as THREE from "three";
 import { OrbitControls } from
- "https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/controls/OrbitControls.js";
+  "three/addons/controls/OrbitControls.js";
 
-const originalFarm = document.querySelector(".farm");
+const host = document.getElementById("farm3d");
 
-if (!originalFarm) {
- throw new Error("BUMI SHIFT farm container not found");
+if (!host) {
+  console.error("BUMI SHIFT: #farm3d not found");
+} else {
+  initializeFarm(host);
 }
 
-// Replace only the old flat farm illustration.
-const viewer = document.createElement("div");
-viewer.id = "farm3d";
-viewer.style.cssText = `
- height:430px;
- width:100%;
- position:relative;
- overflow:hidden;
- border-radius:17px;
- background:linear-gradient(#9fd4ef,#e2f4ed);
- touch-action:none;
-`;
+function initializeFarm(host) {
 
-originalFarm.replaceWith(viewer);
+  // ==========================================
+  // 1. SCENE AND CAMERA
+  // ==========================================
 
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xaad7ec);
-scene.fog = new THREE.Fog(0xaad7ec, 35, 75);
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color("#b9dfec");
+  scene.fog = new THREE.Fog("#b9dfec", 35, 85);
 
-const camera = new THREE.PerspectiveCamera(
- 45, 1, 0.1, 100
-);
-camera.position.set(16, 15, 19);
-
-const renderer = new THREE.WebGLRenderer({
- antialias:true
-});
-renderer.setPixelRatio(
- Math.min(window.devicePixelRatio, 2)
-);
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.3;
-
-viewer.appendChild(renderer.domElement);
-
-const controls = new OrbitControls(
- camera, renderer.domElement
-);
-controls.enableDamping = true;
-controls.target.set(0, 0, 0);
-controls.minDistance = 6;
-controls.maxDistance = 38;
-controls.maxPolarAngle = Math.PI * 0.49;
-
-scene.add(new THREE.HemisphereLight(
- 0xffffff, 0x55785a, 2.2
-));
-
-const sun = new THREE.DirectionalLight(
- 0xfff1d5, 2.7
-);
-sun.position.set(-8, 18, 12);
-sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
-sun.shadow.camera.left = -20;
-sun.shadow.camera.right = 20;
-sun.shadow.camera.top = 20;
-sun.shadow.camera.bottom = -20;
-scene.add(sun);
-
-function material(color) {
- return new THREE.MeshStandardMaterial({
-  color, roughness:0.8
- });
-}
-
-const M = {
- grass:material("#69a45d"),
- soil:material("#845e40"),
- darkSoil:material("#68462f"),
- path:material("#d8b987"),
- rice:material("#4b9c47"),
- riceLight:material("#8ccf5c"),
- grain:material("#e8cb68"),
- maize:material("#378a46"),
- corn:material("#f4cb57"),
- legume:material("#37a55d"),
- leaf:material("#65bb62"),
- trunk:material("#78513a"),
- tree:material("#327b49"),
- roof:material("#ae6746"),
- wall:material("#ead7b4"),
- water:new THREE.MeshStandardMaterial({
-  color:"#48bce0",
-  roughness:0.2,
-  metalness:0.1,
-  transparent:true,
-  opacity:0.85
- })
-};
-
-function add(geometry, mat, parent=scene) {
- const object = new THREE.Mesh(geometry,mat);
- object.castShadow = true;
- object.receiveShadow = true;
- parent.add(object);
- return object;
-}
-
-function box(w,h,d,mat,x,y,z,parent=scene) {
- const obj=add(
-  new THREE.BoxGeometry(w,h,d),mat,parent
- );
- obj.position.set(x,y,z);
- return obj;
-}
-
-function stem(x,y,z,height,mat,parent=scene) {
- const obj=add(
-  new THREE.CylinderGeometry(
-   0.035,0.055,height,6
-  ),mat,parent
- );
- obj.position.set(x,y,z);
- return obj;
-}
-
-function ball(x,y,z,r,mat,parent=scene) {
- const obj=add(
-  new THREE.SphereGeometry(r,8,6),
-  mat,parent
- );
- obj.position.set(x,y,z);
- return obj;
-}
-
-// ========================================
-// FARM LANDSCAPE
-// ========================================
-
-box(29,0.7,24,M.grass,0,-0.6,0);
-box(21,0.3,17,M.soil,0,-0.12,0);
-
-// Central walking paths
-box(1.2,0.12,17,M.path,0,0.12,0);
-box(21,0.12,1.1,M.path,0,0.12,0);
-
-// Irrigation channels
-box(0.85,0.1,17,M.water,-9.7,0.12,0);
-box(0.85,0.1,17,M.water,9.7,0.12,0);
-
-// Farm plots
-const fields=[];
-
-for(const [x,z] of [
- [-4.8,-4.2],[4.8,-4.2],
- [-4.8,4.2],[4.8,4.2]
-]){
- box(7.5,0.4,6.2,M.darkSoil,x,0.2,z);
- box(7.1,0.08,5.8,M.soil,x,0.44,z);
-
- const plants=new THREE.Group();
- plants.position.set(x,0.49,z);
- scene.add(plants);
- fields.push(plants);
-}
-
-// ========================================
-// TREES AND FARMHOUSE
-// ========================================
-
-function tree(x,z,scale=1) {
- stem(x,0.9*scale,z,1.8*scale,M.trunk);
- ball(x,2.05*scale,z,0.9*scale,M.tree);
- ball(x-0.45*scale,1.8*scale,z,
-  0.65*scale,M.leaf);
- ball(x+0.4*scale,1.9*scale,z,
-  0.65*scale,M.tree);
-}
-
-for(let i=0;i<6;i++){
- tree(-12,-9+i*3.5,0.85);
- tree(12,-9+i*3.5,0.85);
-}
-
-box(2.4,1.5,2.1,M.wall,-10.8,0.8,-9);
-const roof=box(
- 3,0.35,2.7,M.roof,-10.8,1.7,-9
-);
-roof.rotation.z=-0.14;
-
-// ========================================
-// CROP MODELS
-// ========================================
-
-function rice(parent,x,z) {
- stem(x,0.37,z,0.72,M.rice,parent);
-
- for(let i=0;i<4;i++){
-  const angle=i*Math.PI/2;
-  const leaf=add(
-   new THREE.ConeGeometry(0.12,0.55,4),
-   i%2?M.riceLight:M.rice,
-   parent
+  const camera = new THREE.PerspectiveCamera(
+    45, 1, 0.1, 120
   );
-  leaf.position.set(
-   x+Math.cos(angle)*0.13,
-   0.43,
-   z+Math.sin(angle)*0.13
-  );
-  leaf.rotation.z=Math.cos(angle)*0.45;
-  leaf.rotation.x=Math.sin(angle)*0.45;
- }
 
- ball(x,0.77,z,0.075,M.grain,parent);
-}
+  camera.position.set(17, 15, 20);
 
-function maize(parent,x,z) {
- stem(x,0.85,z,1.65,M.maize,parent);
+  let renderer;
 
- for(let i=0;i<6;i++){
-  const angle=i*Math.PI/3;
-  const leaf=add(
-   new THREE.ConeGeometry(0.17,0.85,4),
-   M.maize,parent
-  );
-  leaf.position.set(
-   x+Math.cos(angle)*0.24,
-   0.55+i*0.17,
-   z+Math.sin(angle)*0.24
-  );
-  leaf.rotation.z=Math.cos(angle)*0.6;
-  leaf.rotation.x=Math.sin(angle)*0.6;
- }
-
- ball(x+0.13,1.12,z,0.14,M.corn,parent);
-}
-
-function legume(parent,x,z) {
- stem(x,0.25,z,0.48,M.legume,parent);
-
- for(let i=0;i<5;i++){
-  const angle=i*Math.PI*2/5;
-  const leaf=ball(
-   x+Math.cos(angle)*0.23,
-   0.32,
-   z+Math.sin(angle)*0.23,
-   0.18,
-   i%2?M.leaf:M.legume,
-   parent
-  );
-  leaf.scale.set(1.25,0.4,0.8);
- }
-}
-
-function rootCrop(parent,x,z) {
- for(let i=0;i<5;i++){
-  const angle=i*Math.PI*2/5;
-  const leaf=ball(
-   x+Math.cos(angle)*0.22,
-   0.2,
-   z+Math.sin(angle)*0.22,
-   0.23,M.leaf,parent
-  );
-  leaf.scale.set(1.1,0.3,0.8);
- }
-}
-
-function orchard(parent,x,z) {
- stem(x,0.7,z,1.3,M.trunk,parent);
- ball(x,1.6,z,0.68,M.tree,parent);
- ball(x-0.3,1.4,z,0.45,M.leaf,parent);
-}
-
-function classify(id) {
- if(id==="rice")return "rice";
- if(id==="maize")return "maize";
-
- if(["mung_bean","groundnut","soybean"]
-  .includes(id))return "legume";
-
- if(["banana","durian","coconut"]
-  .includes(id))return "orchard";
-
- return "root";
-}
-
-function showCrop(id) {
- const type=classify(id);
-
- for(const field of fields){
-  // Dispose previous crop geometries to avoid
-  // increasing GPU memory on repeated changes.
-  field.traverse(obj=>{
-   if(obj.isMesh){
-    obj.geometry.dispose();
-   }
-  });
-  field.clear();
-
-  const spacing={
-   rice:0.65,
-   maize:1.15,
-   legume:0.9,
-   root:0.9,
-   orchard:2.5
-  }[type];
-
-  for(let x=-2.8;x<=2.8;x+=spacing){
-   for(let z=-2.2;z<=2.2;z+=spacing){
-    if(type==="rice")rice(field,x,z);
-    else if(type==="maize")maize(field,x,z);
-    else if(type==="legume")legume(field,x,z);
-    else if(type==="orchard")orchard(field,x,z);
-    else rootCrop(field,x,z);
-   }
+  try {
+    renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: false
+    });
+  } catch (error) {
+    console.error("3D renderer initialization:", error);
+    host.textContent =
+      "The interactive farm needs a browser with WebGL support.";
+    return;
   }
- }
-}
 
-showCrop("rice");
+  renderer.setPixelRatio(
+    Math.min(window.devicePixelRatio || 1, 2)
+  );
 
-// ========================================
-// FARM LABELS AND CONTROLS
-// ========================================
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type =
+    THREE.PCFSoftShadowMap;
 
-const label=document.createElement("div");
-label.style.cssText=`
- position:absolute;bottom:14px;left:14px;
- background:#10243ce8;color:white;
- padding:11px 15px;border-radius:12px;
- font:600 13px Segoe UI,Arial;
- pointer-events:none;
-`;
-label.textContent="Rice field · Drag to rotate · Scroll to zoom";
-viewer.appendChild(label);
+  renderer.outputColorSpace =
+    THREE.SRGBColorSpace;
 
-const reset=document.createElement("button");
-reset.textContent="Reset view";
-reset.style.cssText=`
- position:absolute;right:12px;bottom:12px;
- z-index:5;padding:9px 13px;
-`;
-viewer.appendChild(reset);
+  renderer.toneMapping =
+    THREE.ACESFilmicToneMapping;
 
-reset.onclick=()=>{
- camera.position.set(16,15,19);
- controls.target.set(0,0,0);
- controls.update();
-};
+  renderer.toneMappingExposure = 1.3;
 
-window.BUMIFarm3D={
- showCrop(id){
-  showCrop(id);
-  label.textContent=
-   id.replaceAll("_"," ").toUpperCase()
-   +" · Interactive 3D farm";
- }
-};
+  renderer.domElement.style.display = "block";
+  renderer.domElement.style.width = "100%";
+  renderer.domElement.style.height = "100%";
 
-// ========================================
-// CONNECT EXISTING DASHBOARD
-// ========================================
+  host.prepend(renderer.domElement);
 
-// Your current index.html changes the field
-// CSS class whenever a crop is selected.
-// Watch that change and update the 3D model.
+  const controls = new OrbitControls(
+    camera,
+    renderer.domElement
+  );
 
-const oldField=document.getElementById("field");
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.07;
+  controls.target.set(0, 0, 0);
+  controls.minDistance = 6;
+  controls.maxDistance = 48;
+  controls.maxPolarAngle = Math.PI * 0.48;
 
-if(oldField){
- const observer=new MutationObserver(()=>{
-  const cropName=document.getElementById(
-   "fieldCrop"
-  )?.textContent?.toLowerCase()||"rice";
+  // ==========================================
+  // 2. LIGHTING
+  // ==========================================
 
-  const ids={
-   "rice":"rice",
-   "maize":"maize",
-   "mung bean":"mung_bean",
-   "groundnut":"groundnut",
-   "soybean":"soybean",
-   "sweet potato":"sweet_potato",
-   "cassava":"cassava",
-   "pineapple":"pineapple",
-   "banana":"banana",
-   "coconut":"coconut",
-   "durian":"durian"
+  scene.add(
+    new THREE.HemisphereLight(
+      0xffffff,
+      0x607b58,
+      2.4
+    )
+  );
+
+  const sunlight = new THREE.DirectionalLight(
+    0xfff1d9,
+    3.0
+  );
+
+  sunlight.position.set(-10, 20, 12);
+  sunlight.castShadow = true;
+  sunlight.shadow.mapSize.set(1024, 1024);
+
+  sunlight.shadow.camera.left = -20;
+  sunlight.shadow.camera.right = 20;
+  sunlight.shadow.camera.top = 20;
+  sunlight.shadow.camera.bottom = -20;
+
+  scene.add(sunlight);
+
+  // ==========================================
+  // 3. MATERIALS AND HELPERS
+  // ==========================================
+
+  function mat(color, extra = {}) {
+    return new THREE.MeshStandardMaterial({
+      color,
+      roughness: 0.82,
+      ...extra
+    });
+  }
+
+  const M = {
+    grass: mat("#6eaa62"),
+    soil: mat("#926443"),
+    darkSoil: mat("#62452f"),
+    drySoil: mat("#a9794c"),
+    path: mat("#d7bc91"),
+    rice: mat("#40964d"),
+    riceLight: mat("#89ca61"),
+    leaf: mat("#55a958"),
+    darkLeaf: mat("#287746"),
+    bananaLeaf: mat("#4eac5b"),
+    trunk: mat("#78543c"),
+    bananaStem: mat("#81ae65"),
+    grain: mat("#e9cb65"),
+    yellow: mat("#edc34f"),
+    orange: mat("#d9a04b"),
+    purple: mat("#82539a"),
+    cassavaStem: mat("#927258"),
+    wall: mat("#e9d5b5"),
+    roof: mat("#ac6c48"),
+    white: mat("#ffffff"),
+    water: mat("#49b8db", {
+      roughness: 0.22,
+      transparent: true,
+      opacity: 0.78
+    })
   };
 
-  window.BUMIFarm3D.showCrop(
-   ids[cropName]||"rice"
+  const cropGroup = new THREE.Group();
+  scene.add(cropGroup);
+
+  const managementGroup = new THREE.Group();
+  scene.add(managementGroup);
+
+  function mesh(geometry, material, parent) {
+    const object = new THREE.Mesh(
+      geometry,
+      material
+    );
+
+    object.castShadow = true;
+    object.receiveShadow = true;
+    parent.add(object);
+
+    return object;
+  }
+
+  function box(
+    parent, w, h, d, material,
+    x = 0, y = 0, z = 0
+  ) {
+    const object = mesh(
+      new THREE.BoxGeometry(w, h, d),
+      material,
+      parent
+    );
+
+    object.position.set(x, y, z);
+    return object;
+  }
+
+  function cylinder(
+    parent, x, y, z,
+    height, radius, material
+  ) {
+    const object = mesh(
+      new THREE.CylinderGeometry(
+        radius * 0.8,
+        radius,
+        height,
+        8
+      ),
+      material,
+      parent
+    );
+
+    object.position.set(x, y, z);
+    return object;
+  }
+
+  function sphere(
+    parent, x, y, z,
+    sx, sy, sz, material
+  ) {
+    const object = mesh(
+      new THREE.SphereGeometry(
+        1, 10, 8
+      ),
+      material,
+      parent
+    );
+
+    object.position.set(x, y, z);
+    object.scale.set(sx, sy, sz);
+
+    return object;
+  }
+
+  function leaf(
+    parent, x, y, z,
+    length, width, angle,
+    material
+  ) {
+    const object = sphere(
+      parent, x, y, z,
+      width, 0.055, length,
+      material
+    );
+
+    object.rotation.y = angle;
+    return object;
+  }
+
+  function clearGroup(group) {
+    group.traverse(object => {
+      if (object.isMesh) {
+        object.geometry.dispose();
+      }
+    });
+
+    group.clear();
+  }
+
+  // ==========================================
+  // 4. PERMANENT FARM LANDSCAPE
+  // ==========================================
+
+  box(
+    scene, 30, 0.65, 25,
+    M.grass, 0, -0.65, 0
   );
- });
 
- observer.observe(oldField,{
-  attributes:true,
-  attributeFilter:["class"]
- });
+  box(
+    scene, 22, 0.3, 18,
+    M.soil, 0, -0.16, 0
+  );
+
+  // Walking paths
+  box(
+    scene, 1.1, 0.1, 18,
+    M.path, 0, 0.08, 0
+  );
+
+  box(
+    scene, 22, 0.1, 1.0,
+    M.path, 0, 0.08, 0
+  );
+
+  // Permanent perimeter channels
+  box(
+    scene, 0.8, 0.08, 18,
+    M.water, -10.1, 0.1, 0
+  );
+
+  box(
+    scene, 0.8, 0.08, 18,
+    M.water, 10.1, 0.1, 0
+  );
+
+  // Farmhouse
+  box(
+    scene, 2.5, 1.5, 2.2,
+    M.wall, -12.3, 0.65, -9.5
+  );
+
+  const roof = box(
+    scene, 3.0, 0.3, 2.8,
+    M.roof, -12.3, 1.55, -9.5
+  );
+
+  roof.rotation.z = -0.12;
+
+  // Background trees
+  function backgroundTree(x, z) {
+    cylinder(
+      scene, x, 0.8, z,
+      1.7, 0.16, M.trunk
+    );
+
+    sphere(
+      scene, x, 1.95, z,
+      0.85, 0.8, 0.8, M.darkLeaf
+    );
+
+    sphere(
+      scene, x - 0.4, 1.75, z,
+      0.6, 0.55, 0.6, M.leaf
+    );
+  }
+
+  for (let i = 0; i < 5; i++) {
+    backgroundTree(-12, -6 + i * 3);
+    backgroundTree(12, -6 + i * 3);
+  }
+
+  const plots = [
+    [-5.0, -4.3],
+    [5.0, -4.3],
+    [-5.0, 4.3],
+    [5.0, 4.3]
+  ];
+
+  // ==========================================
+  // 5. DISTINCT CROP MODELS
+  // ==========================================
+
+  function rice(p, x, z) {
+    for (let i = 0; i < 5; i++) {
+      const a = i * Math.PI * 2 / 5;
+
+      const stem = cylinder(
+        p,
+        x + Math.cos(a) * 0.07,
+        0.35,
+        z + Math.sin(a) * 0.07,
+        0.7,
+        0.018,
+        M.rice
+      );
+
+      stem.rotation.z = Math.cos(a) * 0.18;
+
+      const blade = sphere(
+        p,
+        x + Math.cos(a) * 0.16,
+        0.48,
+        z + Math.sin(a) * 0.16,
+        0.045, 0.29, 0.04,
+        M.riceLight
+      );
+
+      blade.rotation.z = Math.cos(a) * 0.4;
+    }
+
+    for (let i = 0; i < 4; i++) {
+      sphere(
+        p, x + i * 0.035 - 0.05,
+        0.75, z,
+        0.035, 0.07, 0.035,
+        M.grain
+      );
+    }
+  }
+
+  function maize(p, x, z) {
+    cylinder(
+      p, x, 0.85, z,
+      1.7, 0.07, M.rice
+    );
+
+    for (let i = 0; i < 7; i++) {
+      const a = i * 2.4;
+
+      const l = leaf(
+        p,
+        x + Math.cos(a) * 0.38,
+        0.55 + i * 0.14,
+        z + Math.sin(a) * 0.38,
+        0.6, 0.11, a,
+        M.darkLeaf
+      );
+
+      l.rotation.z = Math.cos(a) * 0.24;
+    }
+
+    sphere(
+      p, x + 0.16, 1.1, z,
+      0.14, 0.3, 0.13,
+      M.yellow
+    );
+  }
+
+  function mungBean(p, x, z) {
+    cylinder(
+      p, x, 0.32, z,
+      0.65, 0.035, M.rice
+    );
+
+    for (let i = 0; i < 3; i++) {
+      const a = i * Math.PI * 2 / 3;
+
+      for (let j = 0; j < 3; j++) {
+        sphere(
+          p,
+          x + Math.cos(a) * (0.16 + j * 0.08),
+          0.36 + j * 0.055,
+          z + Math.sin(a) * (0.16 + j * 0.08),
+          0.13, 0.045, 0.11,
+          M.leaf
+        );
+      }
+    }
+
+    sphere(
+      p, x + 0.18, 0.28, z,
+      0.04, 0.17, 0.045,
+      M.darkLeaf
+    );
+  }
+
+  function groundnut(p, x, z) {
+    for (let i = 0; i < 6; i++) {
+      const a = i * Math.PI / 3;
+
+      cylinder(
+        p,
+        x + Math.cos(a) * 0.1,
+        0.16,
+        z + Math.sin(a) * 0.1,
+        0.32, 0.025, M.rice
+      );
+
+      for (let j = 0; j < 3; j++) {
+        sphere(
+          p,
+          x + Math.cos(a) * (0.18 + j * 0.08),
+          0.27,
+          z + Math.sin(a) * (0.18 + j * 0.08),
+          0.1, 0.035, 0.08,
+          M.leaf
+        );
+      }
+    }
+
+    for (let i = 0; i < 3; i++) {
+      sphere(
+        p, x + i * 0.12 - 0.12,
+        0.06, z,
+        0.08, 0.055, 0.06,
+        M.orange
+      );
+    }
+  }
+
+  function soybean(p, x, z) {
+    cylinder(
+      p, x, 0.53, z,
+      1.05, 0.045, M.rice
+    );
+
+    for (let i = 0; i < 5; i++) {
+      const a = i * 1.25;
+
+      for (let j = 0; j < 3; j++) {
+        sphere(
+          p,
+          x + Math.cos(a) * (0.17 + j * 0.1),
+          0.4 + j * 0.16,
+          z + Math.sin(a) * (0.17 + j * 0.1),
+          0.16, 0.05, 0.13,
+          M.darkLeaf
+        );
+      }
+    }
+
+    for (let i = 0; i < 3; i++) {
+      sphere(
+        p, x + 0.11, 0.3 + i * 0.2, z,
+        0.07, 0.13, 0.055,
+        M.yellow
+      );
+    }
+  }
+
+  function sweetPotato(p, x, z) {
+    for (let i = 0; i < 7; i++) {
+      const a = i * Math.PI * 2 / 7;
+
+      for (let j = 1; j <= 3; j++) {
+        sphere(
+          p,
+          x + Math.cos(a) * j * 0.15,
+          0.13,
+          z + Math.sin(a) * j * 0.15,
+          0.16, 0.035, 0.13,
+          M.leaf
+        );
+      }
+    }
+
+    // Purple vine flowers
+    sphere(
+      p, x + 0.15, 0.18, z,
+      0.07, 0.04, 0.07,
+      M.purple
+    );
+  }
+
+  function cassava(p, x, z) {
+    cylinder(
+      p, x, 0.8, z,
+      1.6, 0.065, M.cassavaStem
+    );
+
+    for (let i = 0; i < 8; i++) {
+      const a = i * Math.PI / 4;
+
+      for (let j = 1; j <= 5; j++) {
+        const l = sphere(
+          p,
+          x + Math.cos(a) * j * 0.13,
+          1.55,
+          z + Math.sin(a) * j * 0.13,
+          0.055, 0.025, 0.16,
+          M.darkLeaf
+        );
+
+        l.rotation.y = a;
+      }
+    }
+  }
+
+  function pineapple(p, x, z) {
+    for (let i = 0; i < 13; i++) {
+      const a = i * Math.PI * 2 / 13;
+
+      const l = sphere(
+        p,
+        x + Math.cos(a) * 0.25,
+        0.26,
+        z + Math.sin(a) * 0.25,
+        0.075, 0.35, 0.055,
+        M.darkLeaf
+      );
+
+      l.rotation.z = Math.cos(a) * 0.55;
+      l.rotation.x = Math.sin(a) * 0.55;
+    }
+
+    sphere(
+      p, x, 0.52, z,
+      0.2, 0.31, 0.2,
+      M.orange
+    );
+
+    for (let i = 0; i < 6; i++) {
+      const a = i * Math.PI / 3;
+
+      const crown = sphere(
+        p,
+        x + Math.cos(a) * 0.07,
+        0.86,
+        z + Math.sin(a) * 0.07,
+        0.035, 0.18, 0.03,
+        M.rice
+      );
+
+      crown.rotation.z = Math.cos(a) * 0.35;
+    }
+  }
+
+  function banana(p, x, z) {
+    // Short, thick green pseudostem
+    cylinder(
+      p, x, 1.15, z,
+      2.3, 0.2, M.bananaStem
+    );
+
+    // Broad banana leaves
+    for (let i = 0; i < 8; i++) {
+      const a = i * Math.PI / 4;
+
+      const l = sphere(
+        p,
+        x + Math.cos(a) * 0.8,
+        2.35,
+        z + Math.sin(a) * 0.8,
+        0.26, 0.055, 1.1,
+        M.bananaLeaf
+      );
+
+      l.rotation.y = a;
+      l.rotation.z = Math.cos(a) * 0.18;
+    }
+
+    // Hanging banana bunch
+    for (let i = 0; i < 6; i++) {
+      sphere(
+        p,
+        x + 0.37 + Math.cos(i * 1.2) * 0.09,
+        1.8 - i * 0.11,
+        z + 0.18,
+        0.08, 0.15, 0.08,
+        M.yellow
+      );
+    }
+  }
+
+  function coconut(p, x, z) {
+    // Tall brown palm trunk
+    const trunk = cylinder(
+      p, x, 2.0, z,
+      4.0, 0.17, M.trunk
+    );
+
+    trunk.rotation.z = 0.07;
+
+    // Radial coconut palm fronds
+    for (let i = 0; i < 11; i++) {
+      const a = i * Math.PI * 2 / 11;
+
+      const frond = sphere(
+        p,
+        x + Math.cos(a) * 1.2,
+        3.95,
+        z + Math.sin(a) * 1.2,
+        0.15, 0.065, 1.4,
+        M.darkLeaf
+      );
+
+      frond.rotation.y = a;
+      frond.rotation.z = Math.cos(a) * 0.18;
+    }
+
+    // Coconuts
+    for (let i = 0; i < 4; i++) {
+      const a = i * Math.PI / 2;
+
+      sphere(
+        p,
+        x + Math.cos(a) * 0.22,
+        3.65,
+        z + Math.sin(a) * 0.22,
+        0.17, 0.17, 0.17,
+        M.trunk
+      );
+    }
+  }
+
+  function durian(p, x, z) {
+    // Woody trunk
+    cylinder(
+      p, x, 1.5, z,
+      3.0, 0.24, M.trunk
+    );
+
+    // Dense, rounded tree canopy
+    for (let i = 0; i < 7; i++) {
+      const a = i * Math.PI * 2 / 7;
+
+      sphere(
+        p,
+        x + Math.cos(a) * 0.75,
+        3.25,
+        z + Math.sin(a) * 0.75,
+        0.95, 0.75, 0.9,
+        i % 2 ? M.darkLeaf : M.leaf
+      );
+    }
+
+    // Hanging durian fruits
+    for (let i = 0; i < 5; i++) {
+      const a = i * Math.PI * 2 / 5;
+
+      sphere(
+        p,
+        x + Math.cos(a) * 0.7,
+        2.3,
+        z + Math.sin(a) * 0.7,
+        0.18, 0.22, 0.18,
+        M.orange
+      );
+    }
+  }
+
+  const cropBuilders = {
+    rice,
+    maize,
+    mung_bean: mungBean,
+    groundnut,
+    soybean,
+    sweet_potato: sweetPotato,
+    cassava,
+    pineapple,
+    banana,
+    coconut,
+    durian
+  };
+
+  // ==========================================
+  // 6. FIELD MANAGEMENT VISUALIZATION
+  // ==========================================
+
+  function addManagement(id) {
+    clearGroup(managementGroup);
+
+    const flooded = id === "rice";
+
+    const raisedBeds = [
+      "sweet_potato",
+      "cassava",
+      "groundnut",
+      "pineapple"
+    ].includes(id);
+
+    plots.forEach(([x, z]) => {
+
+      // Plot boundary
+      box(
+        managementGroup,
+        7.5, 0.28, 6.3,
+        M.darkSoil,
+        x, 0.18, z
+      );
+
+      if (flooded) {
+        // Shallow illustrative paddy water
+        box(
+          managementGroup,
+          7.1, 0.06, 5.9,
+          M.water,
+          x, 0.37, z
+        );
+
+      } else if (raisedBeds) {
+        // Raised planting rows
+        for (let row = -2; row <= 2; row++) {
+          box(
+            managementGroup,
+            6.7, 0.22, 0.62,
+            M.drySoil,
+            x, 0.43,
+            z + row * 1.05
+          );
+        }
+
+      } else {
+        box(
+          managementGroup,
+          7.1, 0.08, 5.9,
+          M.soil,
+          x, 0.36, z
+        );
+      }
+    });
+
+    return {
+      flooded,
+      raisedBeds
+    };
+  }
+
+  // ==========================================
+  // 7. RENDER CROPS
+  // ==========================================
+
+  let currentCrop = "rice";
+
+  function showCrop(id) {
+    if (!cropBuilders[id]) id = "rice";
+
+    currentCrop = id;
+
+    clearGroup(cropGroup);
+
+    const management = addManagement(id);
+    const builder = cropBuilders[id];
+
+    let spacing = 0.8;
+
+    if (id === "maize") spacing = 1.3;
+    if (id === "cassava") spacing = 1.45;
+    if (id === "banana") spacing = 2.7;
+    if (id === "coconut") spacing = 3.5;
+    if (id === "durian") spacing = 3.2;
+    if (id === "pineapple") spacing = 1.15;
+
+    plots.forEach(([px, pz]) => {
+      const group = new THREE.Group();
+      group.position.set(px, 0.49, pz);
+      cropGroup.add(group);
+
+      for (
+        let x = -2.7;
+        x <= 2.7;
+        x += spacing
+      ) {
+        for (
+          let z = -2.1;
+          z <= 2.1;
+          z += spacing
+        ) {
+          builder(group, x, z);
+        }
+      }
+    });
+
+    const name = id
+      .replaceAll("_", " ")
+      .replace(/\b\w/g, c => c.toUpperCase());
+
+    if (management.flooded) {
+      statusLabel.textContent =
+        name + " · Paddy water-management scenario";
+
+    } else if (management.raisedBeds) {
+      statusLabel.textContent =
+        name + " · Raised-bed planting scenario";
+
+    } else {
+      statusLabel.textContent =
+        name + " · Field planting scenario";
+    }
+
+    resize();
+  }
+
+  // ==========================================
+  // 8. STATUS LABEL
+  // ==========================================
+
+  const statusLabel = document.createElement("div");
+
+  statusLabel.style.cssText = `
+    position:absolute;
+    left:12px;
+    bottom:12px;
+    z-index:5;
+    background:#10294de8;
+    color:white;
+    padding:10px 14px;
+    border-radius:11px;
+    font:600 12px "Segoe UI",Arial,sans-serif;
+    pointer-events:none;
+    max-width:75%;
+  `;
+
+  host.appendChild(statusLabel);
+
+  // ==========================================
+  // 9. RESIZE AND CAMERA
+  // ==========================================
+
+  function resize() {
+    const width = host.clientWidth;
+    const height = host.clientHeight;
+
+    if (width < 2 || height < 2) return;
+
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+
+    renderer.setSize(
+      width,
+      height,
+      false
+    );
+  }
+
+  function resetCamera() {
+    camera.position.set(17, 15, 20);
+    controls.target.set(0, 0, 0);
+    controls.update();
+    resize();
+  }
+
+  // ==========================================
+  // 10. PUBLIC DASHBOARD API
+  // ==========================================
+
+  window.BUMIFarm3D = {
+    showCrop,
+    resize,
+    resetCamera,
+    getCurrentCrop() {
+      return currentCrop;
+    }
+  };
+
+  // Initialize farm
+  showCrop("rice");
+
+  const observer = new ResizeObserver(resize);
+  observer.observe(host);
+
+  window.addEventListener("resize", resize);
+
+  function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+
+    // Avoid unnecessary rendering while hidden.
+    if (
+      host.clientWidth > 1 &&
+      host.clientHeight > 1 &&
+      !host.classList.contains("hidden")
+    ) {
+      renderer.render(scene, camera);
+    }
+  }
+
+  animate();
 }
-
-// ========================================
-// RESPONSIVE RENDERING
-// ========================================
-
-function resize(){
- const w=viewer.clientWidth;
- const h=viewer.clientHeight;
- if(!w||!h)return;
- camera.aspect=w/h;
- camera.updateProjectionMatrix();
- renderer.setSize(w,h);
-}
-
-new ResizeObserver(resize).observe(viewer);
-resize();
-
-function animate(){
- requestAnimationFrame(animate);
- controls.update();
- renderer.render(scene,camera);
-}
-animate();
