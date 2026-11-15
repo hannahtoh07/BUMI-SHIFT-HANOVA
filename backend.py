@@ -1,28 +1,31 @@
 
 """
-BUMI SHIFT 7.0
-Backend API | HANOVA | Sarawak, Malaysia
+BUMI SHIFT 7.1
+Integrated FastAPI Backend
+HANOVA | Sarawak, Malaysia
 
-Purpose:
-- Serve the BUMI SHIFT website
-- Retrieve NASA POWER historical climate data
-- Generate crop recommendations
-- Support all 11 preferred crop choices
-- Accept optional farmer-reported drainage
-- Connect personalized farming strategies
-- Preserve compatibility with existing engines
-- Remove unused Gemini functionality
+Main functions:
+- NASA POWER historical climate retrieval
+- All 11 crop recommendations
+- Personalized crop and rotation assessment
+- Preferred crop and farmer-reported drainage
+- Market and local agricultural insights
+- 3D farming scenario data
+- Official source attribution
 
-Scientific principles:
-- NASA historical observations are not forecasts.
-- Climate compatibility scores are provisional.
-- Farmer-reported drainage is not satellite-measured.
-- Economic feasibility requires independent evidence.
+No Gemini dependency.
+
+Scientific limitations:
+- Historical NASA observations are not forecasts.
+- Crop compatibility indices are provisional.
+- Drainage is farmer-reported, not measured.
+- Soil-health benefits are not predicted.
+- Market information is not a profitability forecast.
 """
 
+import copy
 import logging
 import math
-import inspect
 
 from pathlib import Path
 from functools import lru_cache
@@ -35,9 +38,17 @@ from climate_engine import get_historical_climate
 from crop_engine import build_recommendations, CROPS
 from strategy_engine import enrich
 
+from market_engine import (
+    build_market_assessment,
+    get_crop_market_profile,
+    get_all_crop_market_profiles,
+    get_sources,
+    market_data_status
+)
+
 
 # ============================================
-# 1. APPLICATION SETUP
+# 1. APPLICATION CONFIGURATION
 # ============================================
 
 ROOT = Path(__file__).resolve().parent
@@ -48,24 +59,29 @@ logger = logging.getLogger("bumi_shift")
 
 app = FastAPI(
     title="BUMI SHIFT",
-    version="7.0",
+    version="7.1",
     description=(
-        "NASA-powered crop and farming-shift "
-        "decision-support system for Sarawak."
+        "NASA-powered agricultural decision-support "
+        "platform for Sarawak, Malaysia."
     )
+)
+
+STATIC_DIR = ROOT / "static"
+
+STATIC_DIR.mkdir(
+    parents=True,
+    exist_ok=True
 )
 
 app.mount(
     "/static",
-    StaticFiles(
-        directory=ROOT / "static"
-    ),
+    StaticFiles(directory=STATIC_DIR),
     name="static"
 )
 
 
 # ============================================
-# 2. SUPPORTED FARM SETTINGS
+# 2. FARM SETTINGS
 # ============================================
 
 PRIORITIES = {
@@ -75,11 +91,8 @@ PRIORITIES = {
     "income"
 }
 
-# All 11 crops are available as preferred crops.
 ALL_CROPS = set(CROPS.keys())
 
-# Current crop selections remain compatible
-# with the existing annual rotation engine.
 BASELINES = {
     "rice",
     "maize",
@@ -97,10 +110,10 @@ DRAINAGE_OPTIONS = {
 }
 
 SARAWAK_BOUNDS = {
-    "min_latitude": 0.5,
-    "max_latitude": 5.1,
-    "min_longitude": 109.5,
-    "max_longitude": 115.5
+    "min_lat": 0.5,
+    "max_lat": 5.1,
+    "min_lon": 109.5,
+    "max_lon": 115.5
 }
 
 
@@ -108,7 +121,7 @@ SARAWAK_BOUNDS = {
 # 3. INPUT VALIDATION
 # ============================================
 
-def validate_coordinates(latitude, longitude):
+def validate_location(latitude, longitude):
 
     if not (
         math.isfinite(latitude)
@@ -117,31 +130,24 @@ def validate_coordinates(latitude, longitude):
         raise HTTPException(
             status_code=422,
             detail={
-                "code": "INVALID_COORDINATES",
-                "message": "Coordinates must be finite."
+                "code": "INVALID_COORDINATES"
             }
         )
 
-    bounds = SARAWAK_BOUNDS
+    b = SARAWAK_BOUNDS
 
-    valid_location = (
-        bounds["min_latitude"]
-        <= latitude
-        <= bounds["max_latitude"]
+    if not (
+        b["min_lat"] <= latitude <= b["max_lat"]
         and
-        bounds["min_longitude"]
-        <= longitude
-        <= bounds["max_longitude"]
-    )
-
-    if not valid_location:
+        b["min_lon"] <= longitude <= b["max_lon"]
+    ):
         raise HTTPException(
             status_code=422,
             detail={
                 "code": "INVALID_LOCATION",
                 "message": (
-                    "Please select a location "
-                    "within the Sarawak pilot area."
+                    "Select a location within "
+                    "the Sarawak pilot area."
                 )
             }
         )
@@ -158,8 +164,7 @@ def validate_settings(
         raise HTTPException(
             status_code=422,
             detail={
-                "code": "INVALID_PRIORITY",
-                "allowed": sorted(PRIORITIES)
+                "code": "INVALID_PRIORITY"
             }
         )
 
@@ -167,8 +172,7 @@ def validate_settings(
         raise HTTPException(
             status_code=422,
             detail={
-                "code": "INVALID_BASELINE",
-                "allowed": sorted(BASELINES)
+                "code": "INVALID_BASELINE"
             }
         )
 
@@ -179,10 +183,7 @@ def validate_settings(
         raise HTTPException(
             status_code=422,
             detail={
-                "code": "INVALID_PREFERRED_CROP",
-                "allowed": (
-                    ["auto"] + sorted(ALL_CROPS)
-                )
+                "code": "INVALID_PREFERRED_CROP"
             }
         )
 
@@ -190,14 +191,13 @@ def validate_settings(
         raise HTTPException(
             status_code=422,
             detail={
-                "code": "INVALID_DRAINAGE",
-                "allowed": sorted(DRAINAGE_OPTIONS)
+                "code": "INVALID_DRAINAGE"
             }
         )
 
 
 # ============================================
-# 4. CACHED NASA CLIMATE DATA
+# 4. NASA CLIMATE CACHE
 # ============================================
 
 @lru_cache(maxsize=80)
@@ -210,31 +210,26 @@ def cached_climate(latitude, longitude):
 
 
 # ============================================
-# 5. FARM ASSESSMENT
+# 5. PERSONALIZED FARM ASSESSMENT
 # ============================================
 
 @lru_cache(maxsize=160)
-def assess(
+def cached_assessment(
     latitude,
     longitude,
     priority,
     baseline,
-    preferred_crop="auto",
-    drainage="unknown"
+    preferred_crop,
+    drainage
 ):
     """
-    Build a farm assessment.
+    Produce a complete personalized assessment.
 
-    During the staged upgrade, this function
-    supports the existing four-argument
-    strategy engine.
+    NASA climate observations remain unchanged
+    when farmer priorities or drainage change.
 
-    Once strategy_engine.enrich accepts
-    preferred_crop and drainage, these
-    inputs are forwarded automatically.
-
-    The response explicitly reports whether
-    the strategy engine processed them.
+    Strategy comparisons and farming actions
+    respond to the selected farmer inputs.
     """
 
     climate = cached_climate(
@@ -242,44 +237,19 @@ def assess(
         longitude
     )
 
-    crops = build_recommendations(
+    crop_results = build_recommendations(
         latitude,
         longitude,
         climate
     )
 
-    # Determine which optional arguments the
-    # installed strategy engine supports.
-    signature = inspect.signature(enrich)
-    parameters = signature.parameters
-
-    supports_kwargs = any(
-        p.kind == inspect.Parameter.VAR_KEYWORD
-        for p in parameters.values()
-    )
-
-    optional_arguments = {}
-
-    if (
-        "preferred_crop" in parameters
-        or supports_kwargs
-    ):
-        optional_arguments["preferred_crop"] = (
-            preferred_crop
-        )
-
-    if (
-        "drainage" in parameters
-        or supports_kwargs
-    ):
-        optional_arguments["drainage"] = drainage
-
     result = enrich(
-        crops,
+        crop_results,
         climate,
-        priority,
-        baseline,
-        **optional_arguments
+        priority=priority,
+        baseline=baseline,
+        preferred_crop=preferred_crop,
+        drainage=drainage
     )
 
     if not isinstance(result, dict):
@@ -287,20 +257,39 @@ def assess(
             "Strategy engine must return a dictionary."
         )
 
-    # Avoid mutating an object owned by another
-    # cached or shared component.
-    result = dict(result)
+    # Avoid modifying a cached shared result.
+    result = copy.deepcopy(result)
 
-    preferred_processed = (
-        "preferred_crop" in optional_arguments
+    # ========================================
+    # MARKET ASSESSMENT
+    # ========================================
+
+    selected_strategy = next(
+        (
+            strategy
+            for strategy in result.get(
+                "strategies", []
+            )
+            if strategy.get("id")
+            == result.get(
+                "recommended_strategy_id"
+            )
+        ),
+        None
     )
 
-    drainage_processed = (
-        "drainage" in optional_arguments
+    market = build_market_assessment(
+        preferred_crop=preferred_crop,
+        baseline=baseline,
+        selected_strategy=selected_strategy
     )
 
-    # Preserve the original response fields.
-    # Add metadata for the new frontend.
+    result["market_insights"] = market
+
+    # ========================================
+    # FARMER INPUTS
+    # ========================================
+
     result["farmer_inputs"] = {
         "latitude": latitude,
         "longitude": longitude,
@@ -310,18 +299,9 @@ def assess(
         "drainage": drainage
     }
 
-    result["personalization"] = {
-        "preferred_crop_processed": (
-            preferred_processed
-        ),
-        "drainage_processed": (
-            drainage_processed
-        ),
-        "strategy_engine_ready": (
-            preferred_processed
-            and drainage_processed
-        )
-    }
+    # ========================================
+    # AVAILABLE CROPS
+    # ========================================
 
     result["available_crops"] = [
         {
@@ -331,32 +311,86 @@ def assess(
             "kind": crop["kind"],
             "approx_duration_months": (
                 crop["months"]
+            ),
+            "planting_system": crop.get(
+                "planting_system"
             )
         }
         for crop_id, crop in CROPS.items()
     ]
 
+    # ========================================
+    # DATA SOURCE ATTRIBUTION
+    # ========================================
+
     result["data_sources"] = {
-        "environmental": {
+        "primary": {
             "name": "NASA POWER",
             "url": (
                 "https://power.larc.nasa.gov/"
             ),
-            "type": (
-                "Historical gridded "
-                "environmental estimates"
+            "purpose": (
+                "Historical environmental "
+                "observations and estimates"
             )
         },
-        "crop_screening": {
+        "crop_model": {
             "name": (
-                "BUMI SHIFT prototype "
-                "crop screening model"
+                "BUMI SHIFT experimental "
+                "crop screening"
             ),
-            "type": (
-                "Experimental crop thresholds "
-                "and compatibility calculations"
+            "purpose": (
+                "Provisional crop compatibility "
+                "and rotation comparison"
             )
-        }
+        },
+        "market": get_sources()
+    }
+
+    # ========================================
+    # 3D VISUALIZATION CONTEXT
+    # ========================================
+
+    summary = climate.get(
+        "summary", {}
+    )
+
+    result["farm_visualization"] = {
+        "type": "illustrative_3d_scenario",
+        "baseline_crop": baseline,
+        "preferred_crop": preferred_crop,
+        "drainage": drainage,
+        "priority": priority,
+        "selected_strategy_id": result.get(
+            "recommended_strategy_id"
+        ),
+        "stages": (
+            selected_strategy.get("stages", [])
+            if selected_strategy
+            else []
+        ),
+        "nasa_evidence": {
+            "mean_annual_rainfall_mm": (
+                summary.get(
+                    "mean_annual_rainfall_mm"
+                )
+            ),
+            "mean_temperature_c": (
+                summary.get(
+                    "mean_temperature_c"
+                )
+            ),
+            "climate_period": result.get(
+                "climate_period"
+            )
+        },
+        "limitations": [
+            "Simplified crop appearance.",
+            "Illustrative development stages.",
+            "Not a measured farm reconstruction.",
+            "Not a crop-growth or yield prediction.",
+            "Planting arrangements require local review."
+        ]
     }
 
     return result
@@ -370,15 +404,17 @@ def assess(
 def home():
 
     return {
-        "status": "running",
         "name": "BUMI SHIFT",
-        "version": "7.0",
+        "version": "7.1",
+        "status": "running",
         "website": "/app",
-        "api": {
+        "api_endpoints": {
+            "health": "/health",
             "climate": "/climate/history",
             "recommendations": "/recommendations",
             "crops": "/crops",
-            "health": "/health"
+            "market": "/market",
+            "market_sources": "/market/sources"
         }
     }
 
@@ -388,8 +424,9 @@ def health():
 
     return {
         "status": "ok",
-        "version": "7.0",
+        "version": "7.1",
         "crop_count": len(CROPS),
+        "market_engine_connected": True,
         "gemini_required": False
     }
 
@@ -401,11 +438,9 @@ def health():
 @app.get("/app")
 def website():
 
-    index_file = (
-        ROOT / "static" / "index.html"
-    )
+    index = STATIC_DIR / "index.html"
 
-    if not index_file.is_file():
+    if not index.is_file():
         raise HTTPException(
             status_code=404,
             detail={
@@ -414,7 +449,7 @@ def website():
         )
 
     return FileResponse(
-        index_file,
+        index,
         media_type="text/html"
     )
 
@@ -427,6 +462,7 @@ def website():
 def get_crops():
 
     return {
+        "region": "Sarawak, Malaysia",
         "count": len(CROPS),
         "crops": [
             {
@@ -436,6 +472,12 @@ def get_crops():
                 "kind": crop["kind"],
                 "approx_duration_months": (
                     crop["months"]
+                ),
+                "planting_system": crop.get(
+                    "planting_system"
+                ),
+                "description": crop.get(
+                    "description"
                 ),
                 "thresholds": {
                     "monthly_rainfall_mm": (
@@ -449,14 +491,14 @@ def get_crops():
             for crop_id, crop in CROPS.items()
         ],
         "note": (
-            "Crop thresholds are provisional "
+            "Crop requirements are provisional "
             "screening assumptions."
         )
     }
 
 
 # ============================================
-# 9. NASA CLIMATE ENDPOINT
+# 9. NASA CLIMATE HISTORY
 # ============================================
 
 @app.get("/climate/history")
@@ -473,7 +515,7 @@ def climate_history(
     )
 ):
 
-    validate_coordinates(
+    validate_location(
         latitude,
         longitude
     )
@@ -487,7 +529,7 @@ def climate_history(
     except Exception as exc:
 
         logger.exception(
-            "NASA climate request failed"
+            "NASA climate retrieval failed"
         )
 
         raise HTTPException(
@@ -495,7 +537,7 @@ def climate_history(
             detail={
                 "code": "CLIMATE_REQUEST_FAILED",
                 "message": (
-                    "Historical climate data "
+                    "Historical NASA climate data "
                     "could not be retrieved."
                 )
             }
@@ -524,7 +566,7 @@ def recommendations(
     drainage: str = "unknown"
 ):
 
-    validate_coordinates(
+    validate_location(
         latitude,
         longitude
     )
@@ -538,7 +580,7 @@ def recommendations(
 
     try:
 
-        return assess(
+        result = cached_assessment(
             round(latitude, 4),
             round(longitude, 4),
             priority,
@@ -547,13 +589,15 @@ def recommendations(
             drainage
         )
 
+        return result
+
     except HTTPException:
         raise
 
     except Exception as exc:
 
         logger.exception(
-            "Farm assessment failed"
+            "Personalized assessment failed"
         )
 
         raise HTTPException(
@@ -561,7 +605,7 @@ def recommendations(
             detail={
                 "code": "ASSESSMENT_REQUEST_FAILED",
                 "message": (
-                    "The farm assessment "
+                    "The farming assessment "
                     "could not be completed."
                 )
             }
@@ -569,93 +613,137 @@ def recommendations(
 
 
 # ============================================
-# 11. MARKET DATA SOURCES
+# 11. MARKET OVERVIEW
+# ============================================
+
+@app.get("/market")
+def market_overview():
+
+    try:
+        return get_all_crop_market_profiles()
+
+    except Exception as exc:
+
+        logger.exception(
+            "Market overview failed"
+        )
+
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "MARKET_REQUEST_FAILED"
+            }
+        ) from exc
+
+
+# ============================================
+# 12. CROP-SPECIFIC MARKET PROFILE
+# ============================================
+
+@app.get("/market/crop/{crop_id}")
+def crop_market_profile(crop_id: str):
+
+    if crop_id not in ALL_CROPS:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "CROP_NOT_FOUND"
+            }
+        )
+
+    profile = get_crop_market_profile(
+        crop_id
+    )
+
+    if profile is None:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "MARKET_PROFILE_NOT_FOUND"
+            }
+        )
+
+    return profile
+
+
+# ============================================
+# 13. MARKET SOURCES
 # ============================================
 
 @app.get("/market/sources")
 def market_sources():
-    """
-    Official reference directory.
-
-    This endpoint does not claim that
-    live market prices have been retrieved.
-    """
 
     return {
         "region": "Sarawak, Malaysia",
-        "sources": [
-            {
-                "name": (
-                    "Department of Statistics "
-                    "Malaysia"
-                ),
-                "short_name": "DOSM",
-                "url": (
-                    "https://open.dosm.gov.my/"
-                ),
-                "purpose": (
-                    "Official agricultural "
-                    "production and area statistics"
-                )
-            },
-            {
-                "name": (
-                    "Sarawak Government "
-                    "Open Data"
-                ),
-                "short_name": "Sarawak Open Data",
-                "url": (
-                    "https://data.sarawak.gov.my/"
-                ),
-                "purpose": (
-                    "Regional agricultural "
-                    "statistics and publications"
-                )
-            },
-            {
-                "name": (
-                    "Federal Agricultural "
-                    "Marketing Authority"
-                ),
-                "short_name": "FAMA",
-                "url": (
-                    "https://ami.fama.gov.my/"
-                ),
-                "purpose": (
-                    "Agricultural market-price "
-                    "references"
-                )
-            }
-        ],
-        "price_data_integrated": False,
+        "sources": get_sources(),
+        "data_status": market_data_status(),
+        "primary_environmental_source": (
+            "NASA POWER"
+        ),
         "note": (
-            "Market prices and production "
-            "statistics must be verified "
-            "before numerical display."
+            "Market information provides "
+            "supplementary agricultural context."
         )
     }
 
 
 # ============================================
-# 12. CACHE MANAGEMENT
+# 14. MARKET ASSESSMENT
 # ============================================
 
-@app.post("/admin/cache/clear")
-def clear_cache():
-    """
-    Cache clearing is intentionally disabled
-    over the public API.
+@app.get("/market/assessment")
+def market_assessment(
+    baseline: str = "rice",
+    preferred_crop: str = "auto"
+):
 
-    Restarting the Render service clears
-    the current in-memory caches.
+    if baseline not in BASELINES:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "INVALID_BASELINE"
+            }
+        )
 
-    Do not expose an unauthenticated
-    administrative cache-clear endpoint.
-    """
+    if (
+        preferred_crop != "auto"
+        and preferred_crop not in ALL_CROPS
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "INVALID_PREFERRED_CROP"
+            }
+        )
 
-    raise HTTPException(
-        status_code=403,
-        detail={
-            "code": "ADMIN_ACTION_DISABLED"
-        }
+    return build_market_assessment(
+        preferred_crop=preferred_crop,
+        baseline=baseline
     )
+
+
+# ============================================
+# 15. CACHE STATUS
+# ============================================
+
+@app.get("/system/cache")
+def cache_status():
+    """
+    Exposes aggregate cache counts only.
+    No farmer inputs or cached results
+    are returned.
+    """
+
+    climate_info = cached_climate.cache_info()
+    assessment_info = cached_assessment.cache_info()
+
+    return {
+        "climate": {
+            "entries": climate_info.currsize,
+            "maximum": climate_info.maxsize
+        },
+        "assessments": {
+            "entries": assessment_info.currsize,
+            "maximum": assessment_info.maxsize
+        }
+    }
