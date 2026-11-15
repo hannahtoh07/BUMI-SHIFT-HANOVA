@@ -1,34 +1,41 @@
 
 """
-BUMI SHIFT 5.0 — Crop Intelligence Engine
+BUMI SHIFT 6.5 — Crop Intelligence Engine
 HANOVA | Sarawak, Malaysia
 
 Compatible with:
-backend.py
-climate_engine.py
-static/index.html
+- climate_engine.py 6.4
+- strategy_engine.py
+- backend.py
+- static/index.html
 
-IMPORTANT:
-Crop thresholds are provisional prototype assumptions.
-Scores are climate screening indices, not predictions
-of crop success, yield, profit or soil improvement.
+Features:
+- 11 crop candidates
+- NASA monthly climate compatibility
+- Candidate planting windows
+- Crop-specific rainfall and temperature evidence
+- Preliminary crop rotation screening
+- Compatibility with existing strategy engine
+
+Crop thresholds and weights are provisional.
+Scores are not probabilities of cultivation success.
 """
 
 from datetime import date
 from calendar import monthrange
 from statistics import mean
+import math
 
 
 # ============================================
-# 1. SARAWAK CROP CANDIDATES
+# 1. CROP LIBRARY
 # ============================================
 
 # temp: monthly mean temperature (C)
-# rain: monthly precipitation total (mm)
+# rain: monthly precipitation (mm)
 # months: approximate growing duration
-#
-# Numerical ranges below are NOT verified FAO
-# requirements. They are prototype assumptions.
+# cover: experimental management proxy,
+# not measured vegetation or soil cover.
 
 CROPS = {
     "rice": {
@@ -37,7 +44,8 @@ CROPS = {
         "kind": "annual",
         "months": 4,
         "temp": (22, 34),
-        "rain": (130, 450)
+        "rain": (130, 450),
+        "cover": 0.60
     },
     "maize": {
         "name": "Maize",
@@ -45,7 +53,8 @@ CROPS = {
         "kind": "annual",
         "months": 4,
         "temp": (20, 33),
-        "rain": (65, 240)
+        "rain": (65, 240),
+        "cover": 0.50
     },
     "mung_bean": {
         "name": "Mung Bean",
@@ -53,7 +62,8 @@ CROPS = {
         "kind": "annual",
         "months": 3,
         "temp": (23, 33),
-        "rain": (45, 180)
+        "rain": (45, 180),
+        "cover": 0.65
     },
     "groundnut": {
         "name": "Groundnut",
@@ -61,7 +71,8 @@ CROPS = {
         "kind": "annual",
         "months": 4,
         "temp": (22, 32),
-        "rain": (55, 220)
+        "rain": (55, 220),
+        "cover": 0.60
     },
     "soybean": {
         "name": "Soybean",
@@ -69,7 +80,8 @@ CROPS = {
         "kind": "annual",
         "months": 4,
         "temp": (20, 32),
-        "rain": (65, 240)
+        "rain": (65, 240),
+        "cover": 0.65
     },
     "sweet_potato": {
         "name": "Sweet Potato",
@@ -77,7 +89,8 @@ CROPS = {
         "kind": "annual",
         "months": 4,
         "temp": (21, 34),
-        "rain": (55, 260)
+        "rain": (55, 260),
+        "cover": 0.85
     },
     "cassava": {
         "name": "Cassava",
@@ -85,7 +98,8 @@ CROPS = {
         "kind": "long_duration",
         "months": 10,
         "temp": (21, 34),
-        "rain": (65, 280)
+        "rain": (65, 280),
+        "cover": 0.55
     },
     "pineapple": {
         "name": "Pineapple",
@@ -93,7 +107,8 @@ CROPS = {
         "kind": "long_duration",
         "months": 16,
         "temp": (20, 33),
-        "rain": (65, 300)
+        "rain": (65, 300),
+        "cover": 0.65
     },
     "banana": {
         "name": "Banana",
@@ -101,7 +116,8 @@ CROPS = {
         "kind": "perennial",
         "months": 12,
         "temp": (23, 34),
-        "rain": (110, 380)
+        "rain": (110, 380),
+        "cover": 0.80
     },
     "coconut": {
         "name": "Coconut",
@@ -109,7 +125,8 @@ CROPS = {
         "kind": "perennial",
         "months": 36,
         "temp": (23, 34),
-        "rain": (100, 400)
+        "rain": (100, 400),
+        "cover": 0.80
     },
     "durian": {
         "name": "Durian",
@@ -117,24 +134,57 @@ CROPS = {
         "kind": "perennial",
         "months": 60,
         "temp": (22, 33),
-        "rain": (120, 430)
+        "rain": (120, 430),
+        "cover": 0.80
     }
 }
 
 
 # ============================================
-# 2. CLIMATE SCREENING FUNCTION
+# 2. DATA VALIDATION
 # ============================================
 
-def closeness(value, low, high):
+def valid(value):
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+    )
 
-    if value is None:
+
+def safe_mean(values):
+    numbers = [
+        float(v)
+        for v in values
+        if valid(v)
+    ]
+
+    if not numbers:
+        return None
+
+    return round(mean(numbers), 2)
+
+
+def closeness(value, low, high):
+    """
+    Experimental compatibility function.
+
+    1.0: within assumed screening interval
+    0.0: outside tolerance interval
+
+    This is not a crop-success probability.
+    """
+
+    if not valid(value):
         return None
 
     if low <= value <= high:
         return 1.0
 
-    margin = max((high - low) * 0.5, 1.0)
+    margin = max(
+        (high - low) * 0.5,
+        1.0
+    )
 
     distance = (
         low - value
@@ -149,27 +199,120 @@ def closeness(value, low, high):
 
 
 # ============================================
-# 3. HISTORICAL MONTHLY CLIMATE
+# 3. MONTHLY CLIMATE COMPATIBILITY
 # ============================================
 
 def month_climatology(history):
+    """
+    Accepts either:
+
+    A. New climate_engine.py 6.4:
+       month = 1 ... 12
+       rainfall_mm = monthly climatology
+
+    B. Older climate engine:
+       month = '2025-01'
+       rainfall_complete = True
+
+    IMPORTANT:
+    Aggregated monthly climatology must NOT be
+    rejected because rainfall_complete is absent.
+    """
+
+    direct = history.get(
+        "monthly_climatology"
+    )
+
+    if direct is None:
+        direct = history.get("monthly", [])
+
+    # New 12-month climatology.
+    if (
+        len(direct) == 12
+        and all(
+            isinstance(row.get("month"), int)
+            and 1 <= row["month"] <= 12
+            for row in direct
+        )
+    ):
+
+        by_month = {
+            row["month"]: row
+            for row in direct
+        }
+
+        output = []
+
+        for month in range(1, 13):
+
+            row = by_month[month]
+
+            rainfall = row.get("rainfall_mm")
+
+            temperature = row.get(
+                "temperature_c",
+                row.get("t2m")
+            )
+
+            output.append({
+                "month": month,
+                "rainfall_mm": (
+                    rainfall
+                    if valid(rainfall)
+                    else None
+                ),
+                "temperature_c": (
+                    temperature
+                    if valid(temperature)
+                    else None
+                ),
+                "rainfall_years": row.get(
+                    "rainfall_years",
+                    row.get(
+                        "rainfall_mm_years",
+                        0
+                    )
+                ),
+                "temperature_years": row.get(
+                    "temperature_years",
+                    row.get(
+                        "temperature_c_years",
+                        0
+                    )
+                )
+            })
+
+        return output
+
+    # Older year-month observations.
+    records = history.get(
+        "historical_monthly",
+        history.get("monthly", [])
+    )
 
     grouped = {
-        month: {"rain": [], "temp": []}
+        month: {
+            "rain": [],
+            "temp": []
+        }
         for month in range(1, 13)
     }
 
-    for row in history.get("monthly", []):
+    for row in records:
 
-        month_text = str(row["month"])
+        raw_month = row.get("month")
 
-        if "-" in month_text:
-            year, month = map(
-                int, month_text.split("-")
-            )
-        else:
-            year = None
-            month = int(month_text)
+        try:
+            if isinstance(raw_month, str) and "-" in raw_month:
+                year, month = map(
+                    int,
+                    raw_month.split("-")
+                )
+            else:
+                month = int(raw_month)
+                year = row.get("year")
+        except (ValueError, TypeError):
+            continue
 
         if month not in grouped:
             continue
@@ -184,50 +327,49 @@ def month_climatology(history):
             "rainfall_complete"
         )
 
-        if rain_complete is None and year:
+        # For historical year-month records,
+        # rainfall completeness is required.
+        if rain_complete is None and year is not None:
+
             valid_days = row.get(
                 "rainfall_valid_days"
             )
-            rain_complete = (
-                valid_days == monthrange(
-                    year, month
-                )[1]
-                if valid_days is not None
-                else False
-            )
 
-        if rainfall is not None and rain_complete:
+            if valid_days is not None:
+                rain_complete = (
+                    valid_days
+                    == monthrange(
+                        int(year),
+                        month
+                    )[1]
+                )
+
+        if valid(rainfall) and rain_complete is True:
             grouped[month]["rain"].append(
                 rainfall
             )
 
-        if temperature is not None:
+        if valid(temperature):
             grouped[month]["temp"].append(
                 temperature
             )
 
-    results = []
+    output = []
 
     for month in range(1, 13):
 
         rain = grouped[month]["rain"]
         temp = grouped[month]["temp"]
 
-        results.append({
+        output.append({
             "month": month,
-            "rainfall_mm": (
-                round(mean(rain), 2)
-                if rain else None
-            ),
-            "temperature_c": (
-                round(mean(temp), 2)
-                if temp else None
-            ),
+            "rainfall_mm": safe_mean(rain),
+            "temperature_c": safe_mean(temp),
             "rainfall_years": len(rain),
             "temperature_years": len(temp)
         })
 
-    return results
+    return output
 
 
 # ============================================
@@ -238,52 +380,86 @@ def screen_crop(crop_id, monthly):
 
     crop = CROPS[crop_id]
 
-    # For perennial crops, this examines only
-    # a representative 12-month climate cycle.
-    duration = min(crop["months"], 12)
+    # Perennial and long-duration crops are
+    # screened against a representative
+    # annual climate cycle.
+    duration = min(
+        crop["months"],
+        12
+    )
 
     windows = []
 
     for start in range(12):
 
-        scores = []
-        valid = True
+        monthly_scores = []
+        rainfall_scores = []
+        temperature_scores = []
+
+        rainfall_values = []
+        temperature_values = []
+
+        valid_window = True
 
         for offset in range(duration):
 
-            month_index = (start + offset) % 12
-            row = monthly[month_index]
+            index = (start + offset) % 12
+            row = monthly[index]
+
+            rainfall = row.get("rainfall_mm")
+            temperature = row.get(
+                "temperature_c"
+            )
 
             rain_score = closeness(
-                row["rainfall_mm"],
+                rainfall,
                 *crop["rain"]
             )
 
             temp_score = closeness(
-                row["temperature_c"],
+                temperature,
                 *crop["temp"]
             )
 
-            if (
-                rain_score is None
-                or temp_score is None
-            ):
-                valid = False
+            if rain_score is None or temp_score is None:
+                valid_window = False
                 break
 
-            scores.append(
+            rainfall_scores.append(rain_score)
+            temperature_scores.append(temp_score)
+
+            rainfall_values.append(rainfall)
+            temperature_values.append(temperature)
+
+            monthly_scores.append(
                 0.55 * rain_score
                 + 0.45 * temp_score
             )
 
-        if valid and scores:
+        if not valid_window or not monthly_scores:
+            continue
 
-            windows.append({
-                "start_month": start + 1,
-                "climate_score": round(
-                    mean(scores) * 100, 1
-                )
-            })
+        windows.append({
+            "start_month": start + 1,
+            "climate_score": round(
+                mean(monthly_scores) * 100,
+                1
+            ),
+            "rainfall_component": round(
+                mean(rainfall_scores) * 100,
+                1
+            ),
+            "temperature_component": round(
+                mean(temperature_scores) * 100,
+                1
+            ),
+            "mean_rainfall_mm": safe_mean(
+                rainfall_values
+            ),
+            "mean_temperature_c": safe_mean(
+                temperature_values
+            )
+        })
 
     windows.sort(
         key=lambda item: item["climate_score"],
@@ -298,20 +474,48 @@ def screen_crop(crop_id, monthly):
         "family": crop["family"],
         "kind": crop["kind"],
         "approx_duration_months": crop["months"],
+
         "climate_score": (
             best["climate_score"]
             if best else None
         ),
+
+        "rainfall_component": (
+            best["rainfall_component"]
+            if best else None
+        ),
+
+        "temperature_component": (
+            best["temperature_component"]
+            if best else None
+        ),
+
         "suggested_start_month": (
             best["start_month"]
             if best else None
         ),
+
         "alternative_windows": windows[:3],
+
+        "climate_evidence": {
+            "mean_rainfall_mm": (
+                best["mean_rainfall_mm"]
+                if best else None
+            ),
+            "mean_temperature_c": (
+                best["mean_temperature_c"]
+                if best else None
+            ),
+            "rainfall_weight": 0.55,
+            "temperature_weight": 0.45
+        },
+
         "status": (
             "provisional climate screening"
             if best
             else "insufficient climate data"
         ),
+
         "thresholds": {
             "monthly_rainfall_mm": crop["rain"],
             "mean_temperature_c": crop["temp"]
@@ -320,7 +524,7 @@ def screen_crop(crop_id, monthly):
 
 
 # ============================================
-# 5. ROTATION COMPARISON
+# 5. PRELIMINARY ROTATION COMPARISON
 # ============================================
 
 ROTATION_SEQUENCES = [
@@ -348,7 +552,10 @@ def evaluate_rotations(crop_results):
             for crop_id in sequence
         ]
 
-        if any(score is None for score in scores):
+        if any(
+            score is None
+            for score in scores
+        ):
             continue
 
         climate_component = mean(scores)
@@ -367,8 +574,6 @@ def evaluate_rotations(crop_results):
             for crop_id in sequence
         )
 
-        # Experimental index.
-        # NOT a prediction of soil-health change.
         screening_index = (
             0.8 * climate_component
             + 0.2 * diversity_component
@@ -382,13 +587,16 @@ def evaluate_rotations(crop_results):
                 for crop_id in sequence
             ],
             "screening_index": round(
-                screening_index, 1
+                screening_index,
+                1
             ),
             "climate_component": round(
-                climate_component, 1
+                climate_component,
+                1
             ),
             "diversity_component": round(
-                diversity_component, 1
+                diversity_component,
+                1
             ),
             "includes_legume": includes_legume,
             "approx_total_months": sum(
@@ -396,10 +604,9 @@ def evaluate_rotations(crop_results):
                 for crop_id in sequence
             ),
             "note": (
-                "Experimental comparison only. "
-                "Continuous planting-calendar, "
-                "soil and economic feasibility "
-                "are not yet validated."
+                "Experimental rotation screening. "
+                "Calendar, soil and economic "
+                "feasibility require further review."
             )
         })
 
@@ -412,63 +619,66 @@ def evaluate_rotations(crop_results):
 
 
 # ============================================
-# 6. FARMING ACTIVITY SUGGESTIONS
+# 6. FARMING ACTIVITIES
 # ============================================
 
 def generate_activities(rotations):
 
-    activities = [
-        {
-            "category": "Planting",
-            "title": "Review planting windows",
-            "reason": (
-                "Compare historical rainfall and "
-                "temperature patterns with crop needs."
-            )
-        },
-        {
-            "category": "Soil Health",
-            "title": "Maintain soil cover",
-            "reason": (
-                "Appropriate mulch and crop residues "
-                "may reduce exposed-soil periods."
-            )
-        },
-        {
-            "category": "Water Management",
-            "title": "Check drainage conditions",
-            "reason": (
-                "Regional rainfall does not establish "
-                "field-level drainage performance."
-            )
-        },
-        {
-            "category": "Nutrient Management",
-            "title": "Plan residue management",
-            "reason": (
-                "Residue handling affects nutrient "
-                "cycling and soil organic matter."
-            )
-        }
-    ]
+    activities = []
 
-    if rotations and rotations[0]["includes_legume"]:
+    if not rotations:
+        return activities
+
+    best = rotations[0]
+
+    activities.append({
+        "category": "Crop rotation",
+        "title": "Review the proposed crop sequence",
+        "reason": (
+            "Explore "
+            + " → ".join(best["crops"])
+            + " and compare its climate screening "
+            "with your current cropping practice."
+        )
+    })
+
+    activities.append({
+        "category": "Planting schedule",
+        "title": "Review seasonal planting windows",
+        "reason": (
+            "Compare historical NASA rainfall "
+            "and temperature patterns with "
+            "the proposed crop sequence."
+        )
+    })
+
+    if best["includes_legume"]:
 
         activities.append({
-            "category": "Crop Rotation",
-            "title": "Explore legume integration",
+            "category": "Nutrient management",
+            "title": "Review legume establishment",
             "reason": (
-                "Legumes may support nitrogen "
-                "management when nodulation and "
-                "residue practices are appropriate."
+                "The selected sequence contains a legume. "
+                "Check nodulation, residue handling "
+                "and local growing conditions."
             )
         })
+
+    activities.append({
+        "category": "Soil protection",
+        "title": "Plan soil-cover management",
+        "reason": (
+            "Review mulch, crop residues or "
+            "appropriate ground-cover practices "
+            "during transitions between crops."
+        )
+    })
 
     return activities
 
 
 # ============================================
-# 7. MAIN BACKEND FUNCTION
+# 7. MAIN RECOMMENDATION FUNCTION
 # ============================================
 
 def build_recommendations(
@@ -478,6 +688,11 @@ def build_recommendations(
 ):
 
     monthly = month_climatology(history)
+
+    if len(monthly) != 12:
+        raise ValueError(
+            "Expected 12 monthly climate records."
+        )
 
     crop_results = [
         screen_crop(crop_id, monthly)
@@ -502,23 +717,34 @@ def build_recommendations(
         "latitude": latitude,
         "longitude": longitude,
         "generated_on": date.today().isoformat(),
+
         "climate_period": [
             history.get("start_year"),
             history.get("end_year")
         ],
+
         "source": history.get("source"),
+
         "monthly_climatology": monthly,
+
         "crop_recommendations": crop_results,
+
         "rotation_options": rotations,
+
         "suggested_activities": (
             generate_activities(rotations)
         ),
+
+        "summary": history.get(
+            "summary",
+            {}
+        ),
+
         "limitations": [
-            "Crop thresholds are prototype assumptions.",
-            "Scores are not probabilities of success.",
-            "Historical climate is not a forecast.",
-            "Rotation calendar feasibility is not validated.",
-            "Soil conditions are not measured at field scale.",
-            "Yield, profit and soil improvement are not predicted."
+            "Crop climate thresholds are provisional assumptions.",
+            "Scores are not probabilities of cultivation success.",
+            "Historical climate is not a future forecast.",
+            "Soil pH and field drainage are not measured.",
+            "Rotation and economic feasibility need local review."
         ]
     }
