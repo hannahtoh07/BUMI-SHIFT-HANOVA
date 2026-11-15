@@ -1,218 +1,200 @@
 
 /*
- BUMI SHIFT 6.3
- Genuine Gemini chat with saved conversation
- and automatic backend retry.
+ BUMI SHIFT 6.3 — Ask BUMI
+ Genuine Gemini chat
+ Saved conversation + automatic retries
 */
 
 (() => {
-  const old = document.getElementById("ask");
+  "use strict";
 
-  if (!old) return;
+  const $ = id => document.getElementById(id);
+
+  const chat = $("bumiChat");
+  const input = $("bumiQuestion");
+  const sendButton = $("bumiSend");
+  const clearButton = $("bumiClear");
+  const status = $("bumiStatus");
+
+  if (!chat || !input || !sendButton ||
+      !clearButton || !status) return;
 
   const style = document.createElement("style");
 
   style.textContent = `
-    #ask .bumi-thread {
+    #bumiChat {
       display:flex;
       flex-direction:column;
       gap:12px;
-      max-height:470px;
-      overflow:auto;
-      padding:15px;
+      max-height:480px;
+      min-height:150px;
+      overflow-y:auto;
+      padding:16px;
       margin:14px 0;
-      background:#f3f7fc;
-      border:1px solid #dbe5ef;
+      background:#f4f7fc;
+      border:1px solid #dce5ef;
       border-radius:14px;
     }
 
-    #ask .bumi-bubble {
+    .bumiBubble {
       max-width:90%;
       padding:12px 15px;
-      border-radius:14px;
-      color:#102b50;
+      border-radius:13px;
+      line-height:1.65;
       white-space:pre-wrap;
       overflow-wrap:anywhere;
-      line-height:1.65;
+      color:#102b50;
     }
 
-    #ask .bumi-user {
+    .bumiBubble.user {
       align-self:flex-end;
       background:#dcecff;
     }
 
-    #ask .bumi-ai {
+    .bumiBubble.assistant {
       align-self:flex-start;
-      background:white;
-      border:1px solid #dbe5ef;
+      background:#fff;
+      border:1px solid #dce5ef;
     }
 
-    #ask .bumi-compose {
+    .bumiBubble.pending {
+      align-self:flex-start;
+      background:#e9effa;
+      color:#526a87;
+    }
+
+    .bumiCompose {
       display:flex;
-      gap:9px;
-      align-items:end;
+      gap:10px;
+      align-items:flex-end;
     }
 
-    #ask .bumi-compose textarea {
+    .bumiCompose textarea {
       flex:1;
+      min-height:75px;
       min-width:0;
-      min-height:76px;
     }
 
-    #ask .bumi-footer {
+    .bumiFooter {
       display:flex;
       justify-content:space-between;
-      gap:10px;
       align-items:center;
-      margin-top:10px;
       flex-wrap:wrap;
-    }
-
-    #ask .bumi-secondary {
-      background:#e8f0fc;
-      color:#102b50;
-    }
-
-    #ask .bumi-small {
-      color:#526985;
+      gap:12px;
+      margin-top:10px;
+      color:#526a87;
       font-size:12px;
     }
 
+    #bumiClear {
+      background:#e7effa;
+      color:#102b50;
+      padding:8px 12px;
+      font-size:12px;
+    }
+
+    .bumiRetry {
+      margin-top:10px;
+      background:#2069d4;
+      color:white;
+      display:block;
+    }
+
     @media(max-width:600px) {
-      #ask .bumi-compose {
+      .bumiCompose {
         flex-direction:column;
         align-items:stretch;
       }
 
-      #ask .bumi-bubble {
-        max-width:98%;
+      .bumiBubble {
+        max-width:97%;
       }
     }
   `;
 
   document.head.append(style);
 
-  old.replaceChildren();
-
-  old.innerHTML = `
-    <div class="eyebrow">
-      Your farming companion
-    </div>
-
-    <h2>Ask BUMI</h2>
-
-    <p class="muted">
-      Ask about crop rotations, soil health,
-      growing conditions or ways to shift
-      your farming practices.
-    </p>
-
-    <div
-      id="bumiThread"
-      class="bumi-thread"
-      role="log"
-      aria-live="polite">
-    </div>
-
-    <div class="bumi-compose">
-      <textarea
-        id="bumiInput"
-        aria-label="Ask BUMI"
-        placeholder="How could I improve soil health while continuing to grow rice?">
-      </textarea>
-
-      <button
-        type="button"
-        id="bumiSend">
-        Send
-      </button>
-    </div>
-
-    <div class="bumi-footer">
-      <span
-        id="bumiState"
-        class="bumi-small">
-        Powered by Gemini
-      </span>
-
-      <button
-        type="button"
-        class="bumi-secondary"
-        id="bumiClear">
-        New conversation
-      </button>
-    </div>
-  `;
-
-  const $ = id => document.getElementById(id);
-
-  const key = "bumi-chat-v63";
+  const STORAGE_KEY = "bumi_shift_chat_v63";
+  const MAX_MESSAGES = 24;
 
   let messages = [];
   let pending = null;
   let busy = false;
-  let epoch = 0;
-
-  // Restore saved chat.
-  try {
-    const saved = JSON.parse(
-      localStorage.getItem(key) || "{}"
-    );
-
-    if (Array.isArray(saved.messages)) {
-      messages = saved.messages.filter(
-        m =>
-          ["user", "assistant"].includes(m.role)
-          && typeof m.content === "string"
-      ).slice(-20);
-    }
-
-    if (
-      saved.pending
-      && typeof saved.pending.question === "string"
-    ) {
-      pending = saved.pending;
-    }
-
-  } catch (_) {
-    messages = [];
-  }
+  let generation = 0;
+  let activeController = null;
 
   function save() {
     try {
       localStorage.setItem(
-        key,
+        STORAGE_KEY,
         JSON.stringify({
-          messages: messages.slice(-20),
+          messages: messages.slice(-MAX_MESSAGES),
           pending
         })
       );
     } catch (_) {
-      // Browser storage may be disabled.
+      // Conversation still works in this browser tab.
+    }
+  }
+
+  function restore() {
+    try {
+      const saved = JSON.parse(
+        localStorage.getItem(STORAGE_KEY) || "{}"
+      );
+
+      if (Array.isArray(saved.messages)) {
+        messages = saved.messages.filter(m =>
+          m &&
+          ["user","assistant"].includes(m.role) &&
+          typeof m.content === "string"
+        ).slice(-MAX_MESSAGES);
+      }
+
+      if (
+        saved.pending &&
+        typeof saved.pending.question === "string" &&
+        saved.pending.farm
+      ) {
+        pending = saved.pending;
+      }
+    } catch (_) {
+      messages = [];
+      pending = null;
     }
   }
 
   function bubble(role, content) {
-    const node = document.createElement("div");
+    const element = document.createElement("div");
 
-    node.className =
-      "bumi-bubble "
-      + (role === "user"
-        ? "bumi-user"
-        : "bumi-ai");
+    element.className = "bumiBubble " + role;
+    element.textContent = content;
 
-    node.textContent = content;
+    chat.appendChild(element);
+    chat.scrollTop = chat.scrollHeight;
 
-    $("bumiThread").append(node);
+    return element;
+  }
 
-    $("bumiThread").scrollTop =
-      $("bumiThread").scrollHeight;
+  function retryCard() {
+    const box = bubble(
+      "assistant",
+      "Your question is saved. Continue when you're ready."
+    );
 
-    return node;
+    const button = document.createElement("button");
+    button.className = "bumiRetry";
+    button.textContent = "Continue";
+
+    button.onclick = () => {
+      if (!busy) submit(true);
+    };
+
+    box.appendChild(button);
   }
 
   function render() {
-    $("bumiThread").replaceChildren();
+    chat.replaceChildren();
 
     if (!messages.length && !pending) {
       bubble(
@@ -221,62 +203,41 @@
       );
     }
 
-    messages.forEach(m => {
-      bubble(m.role, m.content);
+    messages.forEach(message => {
+      bubble(message.role, message.content);
     });
 
     if (pending) {
       bubble("user", pending.question);
-      retryCard();
+      if (!busy) retryCard();
     }
   }
 
-  function retryCard() {
-    const node = bubble(
-      "assistant",
-      "Your question is saved. Tap Continue to finish the answer."
-    );
-
-    const btn = document.createElement("button");
-
-    btn.textContent = "Continue";
-    btn.style.marginTop = "10px";
-
-    btn.onclick = () => {
-      node.remove();
-      send(true);
-    };
-
-    node.append(btn);
-  }
-
-  function context() {
-    const c = window.BUMIContext || {};
+  function farmContext() {
+    const context = window.BUMIContext || {};
 
     return {
-      latitude: Number(
-        c.latitude ?? 1.46
-      ),
-      longitude: Number(
-        c.longitude ?? 110.49
-      ),
-      priority:
-        $("priority")?.value || "soil",
-      baseline:
-        $("baseline")?.value || "rice",
-      selected_crop:
-        c.selected_crop || null,
-      selected_rotation:
-        c.selected_rotation || null
+      latitude: Number(context.latitude ?? 1.46),
+      longitude: Number(context.longitude ?? 110.49),
+      priority: $("priority")?.value || "soil",
+      baseline: $("baseline")?.value || "rice",
+      selected_crop: context.selected_crop || null,
+      selected_rotation: context.selected_rotation || null
     };
   }
 
-  async function askOnce(
-    question,
-    farm,
-    history
-  ) {
+  function setBusy(value) {
+    busy = value;
+    sendButton.disabled = value;
+    input.disabled = value;
+    sendButton.textContent = value
+      ? "Thinking..."
+      : "Send";
+  }
+
+  async function requestAnswer(question, farm, history) {
     const controller = new AbortController();
+    activeController = controller;
 
     const timeout = setTimeout(
       () => controller.abort(),
@@ -297,17 +258,15 @@
         })
       });
 
-      const data = await response.json()
-        .catch(() => ({}));
+      const data = await response.json().catch(() => ({}));
 
       if (
-        !response.ok
-        || data.generated_by !== "Gemini"
-        || !data.answer?.trim()
+        !response.ok ||
+        data.generated_by !== "Gemini" ||
+        typeof data.answer !== "string" ||
+        !data.answer.trim()
       ) {
-        const error = new Error(
-          "No completed answer"
-        );
+        const error = new Error("Request not completed");
 
         error.retryable =
           data.detail?.retryable !== false;
@@ -319,59 +278,58 @@
 
     } finally {
       clearTimeout(timeout);
+
+      if (activeController === controller) {
+        activeController = null;
+      }
     }
   }
 
-  async function send(resume = false) {
+  async function submit(resume = false) {
     if (busy) return;
 
     if (!resume) {
-      const question =
-        $("bumiInput").value.trim();
-
+      const question = input.value.trim();
       if (!question) return;
 
       pending = {
         question,
-        farm: context()
+        farm: farmContext()
       };
 
-      $("bumiInput").value = "";
-
+      input.value = "";
       save();
-      render();
     }
 
     if (!pending) return;
 
-    const myEpoch = epoch;
+    const current = pending;
+    const currentGeneration = generation;
 
-    busy = true;
-    $("bumiSend").disabled = true;
-
-    $("bumiState").textContent =
-      "BUMI is reviewing your question…";
-
+    setBusy(true);
     render();
 
+    status.textContent =
+      "BUMI is reviewing your farming question...";
+
     const loading = bubble(
-      "assistant",
-      "Looking at the evidence and possible farming options…"
+      "pending",
+      "Looking at the evidence and possible farming options..."
     );
 
     try {
-      const answer = await askOnce(
-        pending.question,
-        pending.farm,
+      const answer = await requestAnswer(
+        current.question,
+        current.farm,
         messages.slice(-12)
       );
 
-      if (myEpoch !== epoch) return;
+      if (currentGeneration !== generation) return;
 
       messages.push(
         {
           role: "user",
-          content: pending.question
+          content: current.question
         },
         {
           role: "assistant",
@@ -379,57 +337,57 @@
         }
       );
 
-      messages = messages.slice(-20);
-
+      messages = messages.slice(-MAX_MESSAGES);
       pending = null;
 
       save();
-      render();
 
-      $("bumiState").textContent =
-        "Powered by Gemini";
+      status.textContent = "Powered by Gemini";
 
     } catch (_) {
-      if (myEpoch !== epoch) return;
+      if (currentGeneration !== generation) return;
 
-      loading.remove();
-      render();
-
-      $("bumiState").textContent =
-        "Question saved";
+      status.textContent = "Question saved";
 
     } finally {
-      busy = false;
-      $("bumiSend").disabled = false;
+      loading.remove();
+
+      if (currentGeneration === generation) {
+        setBusy(false);
+        render();
+      }
     }
   }
 
-  $("bumiSend").onclick = () => {
-    send(false);
-  };
+  sendButton.addEventListener("click", () => {
+    submit(false);
+  });
 
-  $("bumiInput").onkeydown = event => {
-    if (
-      event.key === "Enter"
-      && !event.shiftKey
-    ) {
+  input.addEventListener("keydown", event => {
+    if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      send(false);
+      submit(false);
     }
-  };
+  });
 
-  $("bumiClear").onclick = () => {
-    epoch++;
+  clearButton.addEventListener("click", () => {
+    generation++;
+
+    if (activeController) {
+      activeController.abort();
+      activeController = null;
+    }
 
     messages = [];
     pending = null;
 
+    setBusy(false);
     save();
     render();
 
-    $("bumiState").textContent =
-      "Powered by Gemini";
-  };
+    status.textContent = "Powered by Gemini";
+  });
 
+  restore();
   render();
 })();
