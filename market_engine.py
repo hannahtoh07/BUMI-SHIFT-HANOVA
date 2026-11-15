@@ -1,22 +1,22 @@
 
 """
 BUMI SHIFT 7.2
-District-Aware Sarawak Market Intelligence
+Sarawak Market Strategy Advisor
 HANOVA | NASA Space Apps Challenge
 
-Official sources:
-OpenDOSM / MAFS / DOA / DOSM
+Scope:
+- 11 supported crops
+- Sarawak-specific agricultural evidence
+- District-aware market context
+- Personalized selling strategies
+- Buyer, transport and storage considerations
+- Crop-specific post-harvest actions
 
-Rules:
-- Sarawak records only
-- Exact crop-species matches
-- District evidence kept separate from state evidence
-- Historical statistics retain their observation year
-- No invented buyers, prices, yields, revenues or profits
-- No API key required
+No invented market prices, buyers, yields,
+revenue or profit estimates.
 
-This is agricultural market decision support,
-not a forecast of demand or financial returns.
+NASA POWER remains the primary environmental
+source in the wider BUMI SHIFT platform.
 """
 
 import csv
@@ -25,6 +25,7 @@ import logging
 import math
 import re
 import time
+
 from datetime import date
 from functools import lru_cache
 
@@ -32,70 +33,57 @@ import requests
 
 logger = logging.getLogger("bumi_shift.market")
 
-DATASETS = {
-    "district_production": {
-        "url": "https://storage.data.gov.my/agriculture/crops_district_production.csv",
-        "catalogue": "https://open.dosm.gov.my/data-catalogue/crops_district_production",
-        "field": "production",
-        "measure": "Production",
-        "unit": "metric tonnes"
-    },
-    "district_area": {
-        "url": "https://storage.data.gov.my/agriculture/crops_district_area.csv",
-        "catalogue": "https://open.dosm.gov.my/data-catalogue/crops_district_area",
-        "field": "planted_area",
-        "measure": "Planted area",
-        "unit": "ha"
-    },
-    "state": {
-        "url": "https://storage.data.gov.my/agriculture/crops_state.csv",
-        "catalogue": "https://open.dosm.gov.my/data-catalogue/crops_state"
-    }
-}
+
+# ==========================================
+# 1. OFFICIAL SOURCE DIRECTORY
+# ==========================================
 
 SOURCES = {
-    "dosm_production": {
-        "name": "OpenDOSM — Crop Production by District",
-        "url": DATASETS["district_production"]["catalogue"],
-        "geographic_scope": "Sarawak districts",
-        "purpose": "Historical crop-specific production"
-    },
-    "dosm_area": {
-        "name": "OpenDOSM — Crop Area by District",
-        "url": DATASETS["district_area"]["catalogue"],
-        "geographic_scope": "Sarawak districts",
-        "purpose": "Historical crop-specific planted area"
-    },
     "dosm_state": {
-        "name": "OpenDOSM — Crop Area and Production by State",
-        "url": DATASETS["state"]["catalogue"],
+        "name": "OpenDOSM — Crops by State",
+        "url": (
+            "https://open.dosm.gov.my/"
+            "data-catalogue/crops_state"
+        ),
         "geographic_scope": "Sarawak",
-        "purpose": "Historical state-level agricultural statistics"
+        "purpose": "Agricultural production and area"
+    },
+    "dosm_district_production": {
+        "name": "OpenDOSM — District Production",
+        "url": (
+            "https://open.dosm.gov.my/"
+            "data-catalogue/crops_district_production"
+        ),
+        "geographic_scope": "Sarawak districts",
+        "purpose": "Crop production statistics"
+    },
+    "dosm_district_area": {
+        "name": "OpenDOSM — District Crop Area",
+        "url": (
+            "https://open.dosm.gov.my/"
+            "data-catalogue/crops_district_area"
+        ),
+        "geographic_scope": "Sarawak districts",
+        "purpose": "Crop planted-area statistics"
+    },
+    "sarawak": {
+        "name": "Sarawak Government Open Data",
+        "url": "https://data.sarawak.gov.my/",
+        "geographic_scope": "Sarawak",
+        "purpose": "Regional agricultural information"
+    },
+    "fama": {
+        "name": "FAMA Agri Market Insight",
+        "url": "https://ami.fama.gov.my/",
+        "geographic_scope": "Malaysia",
+        "purpose": "Official market-price reference portal"
     }
 }
 
-# Exact species identifiers.
-# Sweet corn is not all maize.
-CROP_SPECIES = {
-    "rice": {"paddy", "rice"},
-    "maize": {"sweet_corn"},
-    "mung_bean": {"mung_bean"},
-    "groundnut": {"groundnuts", "groundnut"},
-    "soybean": {"soybean"},
-    "sweet_potato": {"sweet_potato"},
-    "cassava": {"cassava"},
-    "pineapple": {"pineapple"},
-    "banana": {"banana"},
-    "coconut": {"coconut"},
-    "durian": {"durian"}
-}
 
-# Only these state categories represent
-# the requested crop directly.
-STATE_CATEGORIES = {
-    "rice": {"paddy"},
-    "coconut": {"coconut"}
-}
+# ==========================================
+# 2. SUPPORTED CROPS
+# ==========================================
 
 CROP_NAMES = {
     "rice": "Rice",
@@ -111,157 +99,460 @@ CROP_NAMES = {
     "durian": "Durian"
 }
 
+# Strict crop matching.
+# Sweet corn observations are not equivalent
+# to total maize production.
+
+CROP_SPECIES = {
+    "rice": {"paddy", "rice", "padi"},
+    "maize": {"sweet_corn", "jagung_manis"},
+    "mung_bean": {"mung_bean", "kacang_hijau"},
+    "groundnut": {
+        "groundnut", "groundnuts",
+        "peanut", "kacang_tanah"
+    },
+    "soybean": {"soybean", "soya_bean"},
+    "sweet_potato": {
+        "sweet_potato", "ubi_keledek"
+    },
+    "cassava": {"cassava", "ubi_kayu"},
+    "pineapple": {"pineapple", "nanas"},
+    "banana": {"banana", "pisang"},
+    "coconut": {"coconut", "kelapa"},
+    "durian": {"durian"}
+}
+
+STATE_CATEGORIES = {
+    "rice": {"paddy"},
+    "coconut": {"coconut"}
+}
+
+
+# ==========================================
+# 3. CROP-SPECIFIC MARKET KNOWLEDGE
+# ==========================================
+
 MARKET_PROFILES = {
     "rice": {
         "products": ["Paddy grain", "Milled rice"],
-        "channels": ["Paddy collection centres", "Rice millers"],
-        "postharvest": ["Drying", "Grading", "Moisture control"],
+        "channels": [
+            "Paddy collection centres",
+            "Rice millers"
+        ],
+        "postharvest": [
+            "Grain drying",
+            "Moisture control",
+            "Grading"
+        ],
         "considerations": [
-            "Confirm purchasing and grain-quality requirements.",
-            "Review drying and storage arrangements."
-        ]
+            "Confirm purchasing and grading requirements.",
+            "Arrange drying and suitable storage."
+        ],
+        "focus": "Paddy quality and collection",
+        "handling": (
+            "Check grain moisture and arrange drying "
+            "before storage or delivery."
+        ),
+        "selling": (
+            "Confirm collection arrangements, accepted "
+            "varieties and grain specifications."
+        ),
+        "delivery": (
+            "Coordinate harvest, drying and collection "
+            "with the intended buyer."
+        )
     },
     "maize": {
         "products": ["Sweet corn", "Grain maize"],
-        "channels": ["Produce buyers", "Grain traders"],
-        "postharvest": ["Sorting", "Harvest timing", "Grain drying"],
+        "channels": [
+            "Fresh produce buyers",
+            "Grain traders"
+        ],
+        "postharvest": [
+            "Harvest timing",
+            "Sorting",
+            "Grain drying where applicable"
+        ],
         "considerations": [
-            "Confirm whether buyers want sweet corn or grain maize.",
-            "Check delivery timing and product specifications."
-        ]
+            "Confirm whether the intended product is "
+            "sweet corn or grain maize.",
+            "Check variety and delivery specifications."
+        ],
+        "focus": "Product type and harvest timing",
+        "handling": (
+            "Fresh sweet corn needs timely handling, "
+            "while grain maize requires suitable drying."
+        ),
+        "selling": (
+            "Confirm the maize product, variety, "
+            "quality and quantity required by buyers."
+        ),
+        "delivery": (
+            "Plan harvest and delivery according to "
+            "the selected maize product."
+        )
     },
     "mung_bean": {
         "products": ["Dried mung beans"],
-        "channels": ["Grain traders", "Food processors"],
-        "postharvest": ["Drying", "Cleaning", "Storage"],
+        "channels": [
+            "Grain traders",
+            "Food processors"
+        ],
+        "postharvest": [
+            "Drying",
+            "Cleaning",
+            "Storage"
+        ],
         "considerations": [
-            "Confirm a potential buyer before planting.",
-            "Check moisture and storage requirements."
-        ]
+            "Confirm potential grain buyers.",
+            "Check moisture and grading requirements."
+        ],
+        "focus": "Dry grain quality",
+        "handling": (
+            "Arrange drying, cleaning and "
+            "moisture-controlled storage."
+        ),
+        "selling": (
+            "Confirm grain quality, quantity and "
+            "delivery requirements with potential buyers."
+        ),
+        "delivery": (
+            "Protect dried grain from moisture "
+            "during storage and transportation."
+        )
     },
     "groundnut": {
-        "products": ["Fresh groundnuts", "Dried groundnuts"],
-        "channels": ["Produce buyers", "Processors"],
-        "postharvest": ["Cleaning", "Drying", "Safe storage"],
+        "products": [
+            "Fresh groundnuts",
+            "Dried groundnuts"
+        ],
+        "channels": [
+            "Produce buyers",
+            "Food processors"
+        ],
+        "postharvest": [
+            "Cleaning",
+            "Drying",
+            "Safe storage"
+        ],
         "considerations": [
-            "Confirm the intended fresh or dried product.",
-            "Plan moisture control and quality checks."
-        ]
+            "Confirm fresh or dried product requirements.",
+            "Control moisture and storage quality."
+        ],
+        "focus": "Drying and product quality",
+        "handling": (
+            "Plan appropriate drying and storage "
+            "to reduce deterioration and contamination risks."
+        ),
+        "selling": (
+            "Confirm whether buyers require fresh "
+            "or dried groundnuts and their quality specifications."
+        ),
+        "delivery": (
+            "Coordinate collection after appropriate "
+            "cleaning and handling."
+        )
     },
     "soybean": {
         "products": ["Dry soybeans"],
-        "channels": ["Grain traders", "Food processors"],
-        "postharvest": ["Drying", "Grading", "Storage"],
-        "considerations": [
-            "Verify demand for the selected variety.",
-            "Confirm quality and moisture specifications."
-        ]
-    },
-    "sweet_potato": {
-        "products": ["Fresh roots", "Processed products"],
-        "channels": ["Produce buyers", "Food processors"],
-        "postharvest": ["Sorting", "Careful handling", "Storage"],
-        "considerations": [
-            "Confirm preferred varieties and root sizes.",
-            "Reduce root damage during handling."
-        ]
-    },
-    "cassava": {
-        "products": ["Fresh roots", "Processed cassava"],
-        "channels": ["Root buyers", "Processors"],
-        "postharvest": ["Prompt transport", "Appropriate processing"],
-        "considerations": [
-            "Confirm processing or fresh-root requirements.",
-            "Arrange timely transport after harvesting."
-        ]
-    },
-    "pineapple": {
-        "products": ["Fresh pineapple", "Processed pineapple"],
-        "channels": ["Fruit buyers", "Processors"],
-        "postharvest": ["Grading", "Maturity checks", "Transport"],
-        "considerations": [
-            "Confirm variety and fruit-size preferences.",
-            "Coordinate harvesting with delivery."
-        ]
-    },
-    "banana": {
-        "products": ["Fresh bananas", "Processed bananas"],
-        "channels": ["Fruit wholesalers", "Retailers"],
-        "postharvest": ["Ripening", "Handling", "Transport"],
+        "channels": [
+            "Grain traders",
+            "Food processors"
+        ],
+        "postharvest": [
+            "Drying",
+            "Grading",
+            "Storage"
+        ],
         "considerations": [
             "Confirm buyer variety preferences.",
-            "Plan ripening and delivery arrangements."
-        ]
+            "Review grain moisture and quality requirements."
+        ],
+        "focus": "Grain quality and storage",
+        "handling": (
+            "Arrange suitable drying, grading "
+            "and grain storage."
+        ),
+        "selling": (
+            "Confirm processor requirements "
+            "and acceptance of the selected variety."
+        ),
+        "delivery": (
+            "Protect dried grain quality "
+            "during transport."
+        )
+    },
+    "sweet_potato": {
+        "products": [
+            "Fresh storage roots",
+            "Processed products"
+        ],
+        "channels": [
+            "Fresh produce buyers",
+            "Food processors"
+        ],
+        "postharvest": [
+            "Careful harvesting",
+            "Sorting",
+            "Appropriate storage"
+        ],
+        "considerations": [
+            "Confirm preferred varieties and root sizes.",
+            "Reduce handling damage."
+        ],
+        "focus": "Root quality and grading",
+        "handling": (
+            "Minimize root damage and review "
+            "suitable curing and storage practices."
+        ),
+        "selling": (
+            "Confirm buyer preferences for "
+            "variety, root size and grading."
+        ),
+        "delivery": (
+            "Arrange careful packing and "
+            "timely delivery."
+        )
+    },
+    "cassava": {
+        "products": [
+            "Fresh cassava roots",
+            "Processed cassava"
+        ],
+        "channels": [
+            "Root buyers",
+            "Food processors"
+        ],
+        "postharvest": [
+            "Prompt collection",
+            "Careful handling",
+            "Appropriate processing"
+        ],
+        "considerations": [
+            "Confirm fresh-root or processing requirements.",
+            "Arrange prompt post-harvest collection."
+        ],
+        "focus": "Rapid harvest-to-buyer coordination",
+        "handling": (
+            "Fresh cassava roots deteriorate rapidly "
+            "after harvest. Coordinate prompt collection "
+            "or appropriate processing."
+        ),
+        "selling": (
+            "Confirm whether buyers require fresh roots "
+            "or specific processing varieties."
+        ),
+        "delivery": (
+            "Agree on a harvest-to-buyer schedule "
+            "that minimizes delays."
+        )
+    },
+    "pineapple": {
+        "products": [
+            "Fresh pineapple",
+            "Processed pineapple"
+        ],
+        "channels": [
+            "Fruit buyers",
+            "Food processors"
+        ],
+        "postharvest": [
+            "Maturity checks",
+            "Fruit grading",
+            "Transport"
+        ],
+        "considerations": [
+            "Confirm fruit size and variety preferences.",
+            "Coordinate harvest maturity and delivery."
+        ],
+        "focus": "Fruit maturity and delivery",
+        "handling": (
+            "Harvest at an appropriate maturity "
+            "and minimize fruit damage."
+        ),
+        "selling": (
+            "Confirm buyer requirements for "
+            "variety, size and fruit quality."
+        ),
+        "delivery": (
+            "Coordinate fruit collection "
+            "and careful transport."
+        )
+    },
+    "banana": {
+        "products": [
+            "Fresh bananas",
+            "Processed bananas"
+        ],
+        "channels": [
+            "Fruit wholesalers",
+            "Retailers"
+        ],
+        "postharvest": [
+            "Bunch handling",
+            "Ripening management",
+            "Transport"
+        ],
+        "considerations": [
+            "Confirm variety and ripeness requirements.",
+            "Reduce bruising during transport."
+        ],
+        "focus": "Ripening and fruit handling",
+        "handling": (
+            "Minimize bruising and coordinate "
+            "ripening and post-harvest handling."
+        ),
+        "selling": (
+            "Confirm preferred varieties "
+            "and maturity requirements."
+        ),
+        "delivery": (
+            "Plan collection and delivery "
+            "to maintain fruit quality."
+        )
     },
     "coconut": {
-        "products": ["Young coconuts", "Mature coconuts"],
-        "channels": ["Produce buyers", "Coconut processors"],
-        "postharvest": ["Harvesting", "Sorting", "Transport"],
+        "products": [
+            "Young coconuts",
+            "Mature coconuts"
+        ],
+        "channels": [
+            "Fresh produce buyers",
+            "Coconut processors"
+        ],
+        "postharvest": [
+            "Harvesting",
+            "Sorting",
+            "Transport"
+        ],
         "considerations": [
-            "Confirm the intended coconut product.",
-            "Review harvesting labour and transport."
-        ]
+            "Confirm young or mature coconut demand.",
+            "Plan harvesting labour and transport."
+        ],
+        "focus": "Product maturity and collection",
+        "handling": (
+            "Plan harvesting labour, collection "
+            "and product handling."
+        ),
+        "selling": (
+            "Confirm whether buyers want "
+            "young or mature coconuts."
+        ),
+        "delivery": (
+            "Review long-term collection "
+            "and transport arrangements."
+        )
     },
     "durian": {
-        "products": ["Fresh durian", "Processed durian"],
-        "channels": ["Fruit traders", "Processors"],
-        "postharvest": ["Harvest timing", "Handling", "Transport"],
+        "products": [
+            "Fresh durian",
+            "Processed durian"
+        ],
+        "channels": [
+            "Fruit traders",
+            "Food processors"
+        ],
+        "postharvest": [
+            "Harvest timing",
+            "Careful handling",
+            "Transport"
+        ],
         "considerations": [
-            "Verify cultivar-specific buyer requirements.",
-            "Plan collection and long-term orchard marketing."
-        ]
+            "Confirm cultivar-specific buyer requirements.",
+            "Plan collection and orchard marketing."
+        ],
+        "focus": "Cultivar demand and harvest logistics",
+        "handling": (
+            "Arrange timely fruit collection "
+            "and appropriate handling."
+        ),
+        "selling": (
+            "Confirm cultivar-specific requirements "
+            "before committing to long-term orchard planting."
+        ),
+        "delivery": (
+            "Coordinate fruit collection, "
+            "handling and transport."
+        )
     }
 }
 
 
-# ============================================
-# 1. DATA HELPERS
-# ============================================
+# ==========================================
+# 4. OFFICIAL DATA SETTINGS
+# ==========================================
+
+DATASETS = {
+    "state": {
+        "url": (
+            "https://storage.data.gov.my/"
+            "agriculture/crops_state.csv"
+        ),
+        "source_url": SOURCES["dosm_state"]["url"]
+    },
+    "district_production": {
+        "url": (
+            "https://storage.data.gov.my/"
+            "agriculture/crops_district_production.csv"
+        ),
+        "source_url": SOURCES[
+            "dosm_district_production"
+        ]["url"]
+    },
+    "district_area": {
+        "url": (
+            "https://storage.data.gov.my/"
+            "agriculture/crops_district_area.csv"
+        ),
+        "source_url": SOURCES[
+            "dosm_district_area"
+        ]["url"]
+    }
+}
+
+# No numerical observation is hard-coded.
+# Dataset columns and district coverage must
+# match the expected schema before publishing.
+
+_cache = {}
+CACHE_SECONDS = 86400
+
 
 def normalize(value):
-    text = str(value or "").strip().lower()
-    return re.sub(r"[^a-z0-9]+", "_", text).strip("_")
+    return re.sub(
+        r"[^a-z0-9]+",
+        "_",
+        str(value or "").strip().lower()
+    ).strip("_")
 
 
 def numeric(value):
     try:
         n = float(str(value).replace(",", ""))
         return n if math.isfinite(n) and n >= 0 else None
-    except (ValueError, TypeError):
+    except (TypeError, ValueError):
         return None
 
 
 def year_of(value):
     try:
-        return int(str(value)[:4])
-    except (ValueError, TypeError):
+        year = int(str(value)[:4])
+        return year if 1900 <= year <= date.today().year else None
+    except (TypeError, ValueError):
         return None
 
 
-# ============================================
-# 2. OFFICIAL DATA DOWNLOAD
-# ============================================
-
-# Cache successful downloads for one day.
-# Failed requests are not permanently cached.
-
-_download_cache = {}
-CACHE_SECONDS = 86400
-
-
 def download_dataset(key):
+    cached = _cache.get(key)
     now = time.monotonic()
 
-    cached = _download_cache.get(key)
     if cached and now - cached[0] < CACHE_SECONDS:
         return cached[1]
 
-    url = DATASETS[key]["url"]
-
     try:
         response = requests.get(
-            url,
-            timeout=30,
+            DATASETS[key]["url"],
+            timeout=15,
             headers={
                 "User-Agent": "BUMI-SHIFT-HANOVA/7.2"
             }
@@ -275,46 +566,46 @@ def download_dataset(key):
         ))
 
         if not rows:
-            raise ValueError("Empty dataset")
+            return []
 
-        _download_cache[key] = (now, rows)
+        _cache[key] = (now, rows)
         return rows
 
     except (
         requests.RequestException,
+        ValueError,
         UnicodeError,
-        csv.Error,
-        ValueError
+        csv.Error
     ) as exc:
         logger.warning(
-            "Official dataset %s: %s",
-            key, type(exc).__name__
+            "Market dataset %s retrieval: %s",
+            key,
+            type(exc).__name__
         )
         return []
 
 
-# ============================================
-# 3. EXACT SARAWAK CROP FILTER
-# ============================================
+# ==========================================
+# 5. SARAWAK STATISTICS
+# ==========================================
 
-def matches_crop(row, crop_id):
-    if normalize(row.get("state")) != "sarawak":
-        return False
-
-    return normalize(
-        row.get("crop_species")
-    ) in CROP_SPECIES[crop_id]
-
-
-def make_stat(
-    crop_id, year, value,
-    measure, unit, scope,
-    district, source_key,
-    crop_label=None
+def make_record(
+    crop_id,
+    year,
+    value,
+    measure,
+    unit,
+    scope,
+    district,
+    source_key
 ):
     return {
         "crop_id": crop_id,
-        "crop": crop_label or CROP_NAMES[crop_id],
+        "crop": (
+            "Sweet corn"
+            if crop_id == "maize"
+            else CROP_NAMES[crop_id]
+        ),
         "year": year,
         "value": round(value, 2),
         "measure": measure,
@@ -322,246 +613,210 @@ def make_stat(
         "geographic_coverage": scope,
         "district": district,
         "state": "Sarawak",
-        "source": "OpenDOSM / MAFS / DOA",
-        "source_url": DATASETS[source_key]["catalogue"],
+        "source": "OpenDOSM",
+        "source_url": DATASETS[source_key]["source_url"],
         "record_type": "historical_official_statistic"
     }
 
-
-# ============================================
-# 4. DISTRICT RECORDS
-# ============================================
-
-@lru_cache(maxsize=128)
-def district_crop_statistics(crop_id, district):
-    if crop_id not in CROP_SPECIES:
-        return []
-
-    district = normalize(district)
-
-    if not district:
-        return []
-
-    output = []
-
-    for source_key in (
-        "district_production",
-        "district_area"
-    ):
-        dataset = DATASETS[source_key]
-        rows = download_dataset(source_key)
-
-        grouped = {}
-
-        for row in rows:
-            if not matches_crop(row, crop_id):
-                continue
-
-            if normalize(row.get("district")) != district:
-                continue
-
-            year = year_of(row.get("date"))
-            value = numeric(row.get(dataset["field"]))
-
-            if year is None or value is None:
-                continue
-
-            species = normalize(row.get("crop_species"))
-            key = (year, species)
-
-            # Avoid duplicate identical observations.
-            # Conflicting duplicates are skipped rather
-            # than silently added together.
-            if key in grouped and grouped[key] != value:
-                grouped[key] = None
-            elif key not in grouped:
-                grouped[key] = value
-
-        yearly = {}
-
-        for (year, _), value in grouped.items():
-            if value is not None:
-                yearly[year] = yearly.get(year, 0) + value
-
-        for year, value in yearly.items():
-            output.append(make_stat(
-                crop_id, year, value,
-                dataset["measure"],
-                dataset["unit"],
-                "district",
-                district.replace("_", " ").title(),
-                source_key,
-                "Sweet corn" if crop_id == "maize"
-                else None
-            ))
-
-    return sorted(
-        output,
-        key=lambda r: (r["year"], r["measure"]),
-        reverse=True
-    )
-
-
-# ============================================
-# 5. SARAWAK-WIDE RECORDS
-# ============================================
-
-@lru_cache(maxsize=32)
-def sarawak_crop_statistics(crop_id):
-    if crop_id not in CROP_SPECIES:
-        return []
-
-    output = []
-    allowed = STATE_CATEGORIES.get(crop_id)
-
-    if allowed:
-        for row in download_dataset("state"):
-            if normalize(row.get("state")) != "sarawak":
-                continue
-
-            if normalize(row.get("crop_type")) not in allowed:
-                continue
-
-            year = year_of(row.get("date"))
-            if year is None:
-                continue
-
-            for field, measure, unit in (
-                ("production", "Production", "metric tonnes"),
-                ("planted_area", "Planted area", "ha")
-            ):
-                value = numeric(row.get(field))
-                if value is not None:
-                    output.append(make_stat(
-                        crop_id, year, value,
-                        measure, unit,
-                        "state", None, "state"
-                    ))
-
-        if output:
-            return sorted(
-                output,
-                key=lambda r: r["year"],
-                reverse=True
-            )
-
-    # Older species-level district records can
-    # be aggregated across Sarawak, provided
-    # exact crop identifiers are used.
-    for source_key in (
-        "district_production",
-        "district_area"
-    ):
-        dataset = DATASETS[source_key]
-        rows = download_dataset(source_key)
-
-        unique = {}
-        conflicts = set()
-
-        for row in rows:
-            if not matches_crop(row, crop_id):
-                continue
-
-            district = normalize(row.get("district"))
-            year = year_of(row.get("date"))
-            species = normalize(row.get("crop_species"))
-            value = numeric(row.get(dataset["field"]))
-
-            if not district or year is None or value is None:
-                continue
-
-            key = (year, district, species)
-
-            if key in unique and unique[key] != value:
-                conflicts.add(key)
-            else:
-                unique[key] = value
-
-        # Do not publish an aggregate for a year
-        # containing conflicting duplicate records.
-        years_with_conflicts = {
-            key[0] for key in conflicts
-        }
-
-        totals = {}
-        for (year, district, species), value in unique.items():
-            if year in years_with_conflicts:
-                continue
-            totals[year] = totals.get(year, 0) + value
-
-        for year, value in totals.items():
-            output.append(make_stat(
-                crop_id, year, value,
-                dataset["measure"],
-                dataset["unit"],
-                "state_aggregated_from_districts",
-                None, source_key,
-                "Sweet corn" if crop_id == "maize"
-                else None
-            ))
-
-    return sorted(
-        output,
-        key=lambda r: r["year"],
-        reverse=True
-    )
-
-
-# ============================================
-# 6. CHOOSE RELEVANT STATISTICS
-# ============================================
 
 def latest_by_measure(records):
     latest = {}
 
     for record in sorted(
         records,
-        key=lambda r: r["year"],
+        key=lambda x: x["year"],
         reverse=True
     ):
         latest.setdefault(
-            record["measure"], record
+            record["measure"],
+            record
         )
 
     return list(latest.values())
 
 
-def select_market_evidence(crop_id, district=None):
-    district_records = (
-        latest_by_measure(
-            district_crop_statistics(crop_id, district)
+@lru_cache(maxsize=128)
+def district_crop_statistics(crop_id, district):
+    if crop_id not in CROP_NAMES or not district:
+        return []
+
+    target = normalize(district)
+    output = []
+
+    configurations = [
+        (
+            "district_production",
+            "production",
+            "Production",
+            "metric tonnes"
+        ),
+        (
+            "district_area",
+            "planted_area",
+            "Planted area",
+            "ha"
         )
+    ]
+
+    for key, field, measure, unit in configurations:
+        rows = download_dataset(key)
+
+        if not rows:
+            continue
+
+        required = {
+            "state", "district", "crop_species",
+            "date", field
+        }
+
+        if not required.issubset(rows[0].keys()):
+            logger.warning(
+                "Unexpected schema in %s", key
+            )
+            continue
+
+        # One exact observation per species,
+        # district, year and measure.
+        observations = {}
+        conflicts = set()
+
+        for row in rows:
+            if normalize(row.get("state")) != "sarawak":
+                continue
+
+            if normalize(row.get("district")) != target:
+                continue
+
+            species = normalize(row.get("crop_species"))
+
+            if species not in CROP_SPECIES[crop_id]:
+                continue
+
+            year = year_of(row.get("date"))
+            value = numeric(row.get(field))
+
+            if year is None or value is None:
+                continue
+
+            obs_key = (year, species)
+
+            if obs_key in observations:
+                if observations[obs_key] != value:
+                    conflicts.add(obs_key)
+            else:
+                observations[obs_key] = value
+
+        years_with_conflicts = {
+            year for year, _ in conflicts
+        }
+
+        yearly = {}
+
+        for (year, species), value in observations.items():
+            if year in years_with_conflicts:
+                continue
+
+            yearly[year] = yearly.get(year, 0) + value
+
+        for year, value in yearly.items():
+            output.append(make_record(
+                crop_id, year, value,
+                measure, unit,
+                "district",
+                district,
+                key
+            ))
+
+    return latest_by_measure(output)
+
+
+@lru_cache(maxsize=32)
+def sarawak_crop_statistics(crop_id):
+    if crop_id not in CROP_NAMES:
+        return []
+
+    allowed = STATE_CATEGORIES.get(crop_id)
+
+    if not allowed:
+        # Do not construct a state-wide figure
+        # from district records unless full
+        # reporting coverage is independently verified.
+        return []
+
+    rows = download_dataset("state")
+
+    if not rows:
+        return []
+
+    required = {
+        "state", "crop_type", "date",
+        "production", "planted_area"
+    }
+
+    if not required.issubset(rows[0].keys()):
+        logger.warning("Unexpected state dataset schema")
+        return []
+
+    output = []
+
+    for row in rows:
+        if normalize(row.get("state")) != "sarawak":
+            continue
+
+        if normalize(row.get("crop_type")) not in allowed:
+            continue
+
+        year = year_of(row.get("date"))
+
+        if year is None:
+            continue
+
+        for field, measure, unit in [
+            ("production", "Production", "metric tonnes"),
+            ("planted_area", "Planted area", "ha")
+        ]:
+            value = numeric(row.get(field))
+
+            if value is None:
+                continue
+
+            output.append(make_record(
+                crop_id, year, value,
+                measure, unit,
+                "state",
+                None,
+                "state"
+            ))
+
+    return latest_by_measure(output)
+
+
+def select_market_evidence(crop_id, district=None):
+    local = (
+        district_crop_statistics(crop_id, district)
         if district else []
     )
 
-    state_records = latest_by_measure(
-        sarawak_crop_statistics(crop_id)
-    )
+    regional = sarawak_crop_statistics(crop_id)
 
     return {
         "selected_district": district,
-        "district_statistics": district_records,
-        "sarawak_statistics": state_records,
-        "display_statistics": (
-            district_records
-            if district_records
-            else state_records
-        ),
+        "district_statistics": local,
+        "sarawak_statistics": regional,
+        "display_statistics": local or regional,
         "evidence_scope": (
-            "district" if district_records
-            else "sarawak"
+            "district" if local else "sarawak"
         ),
         "source_note": (
-            "Historical agricultural production and "
-            "planted-area statistics are not "
-            "measurements of current market demand."
+            "Historical cultivation statistics "
+            "do not establish current market demand."
         )
     }
 
 
-# ============================================
-# 7. MARKET READINESS CHECKLIST
-# ============================================
+# ==========================================
+# 6. PERSONALIZED MARKET STRATEGY
+# ==========================================
 
 def market_readiness(
     crop_id,
@@ -569,6 +824,16 @@ def market_readiness(
     transport="unknown",
     storage="unknown"
 ):
+    """
+    Generate a practical crop-specific market plan.
+
+    Inputs are farmer-reported arrangements.
+    Recommendations are rule-based, not AI-generated.
+
+    Compatible with the existing:
+    /market/readiness/{crop_id} endpoint.
+    """
+
     if crop_id not in MARKET_PROFILES:
         return None
 
@@ -576,63 +841,139 @@ def market_readiness(
 
     answers = {
         "buyer": buyer if buyer in allowed else "unknown",
-        "transport": transport if transport in allowed else "unknown",
-        "storage": storage if storage in allowed else "unknown"
-    }
-
-    guidance = {
-        "buyer": (
-            "Identify a potential buyer and confirm "
-            "product, quality, quantity and delivery terms."
-        ),
         "transport": (
-            "Check harvest collection, transport "
-            "availability and travel time."
+            transport if transport in allowed
+            else "unknown"
         ),
         "storage": (
-            "Review crop-specific drying, handling "
-            "and storage arrangements."
+            storage if storage in allowed
+            else "unknown"
         )
     }
 
-    actions = [
-        guidance[key]
-        for key, value in answers.items()
-        if value != "yes"
-    ]
+    profile = MARKET_PROFILES[crop_id]
+    crop_name = CROP_NAMES[crop_id]
 
-    confirmed = sum(
-        value == "yes"
-        for value in answers.values()
+    actions = []
+
+    def add_action(priority, title, description):
+        actions.append({
+            "priority": priority,
+            "title": title,
+            "description": description
+        })
+
+    # Prioritize the constraint most likely
+    # to prevent successful marketing.
+
+    if answers["buyer"] != "yes":
+        add_action(
+            1,
+            "Identify a potential buyer",
+            profile["selling"]
+        )
+
+    if answers["transport"] != "yes":
+        add_action(
+            2,
+            "Arrange harvest transport",
+            profile["delivery"]
+        )
+
+    if answers["storage"] != "yes":
+        add_action(
+            3,
+            "Prepare post-harvest handling",
+            profile["handling"]
+        )
+
+    add_action(
+        4,
+        "Confirm product specifications",
+        profile["selling"]
     )
+
+    # Crop-specific recommendation
+    # takes priority over generic checklist text.
+
+    if answers["buyer"] != "yes":
+        headline = (
+            "Confirm a suitable selling pathway "
+            "before commercial planting."
+        )
+
+    elif answers["transport"] != "yes":
+        headline = (
+            "Secure a practical harvest-to-buyer "
+            "delivery arrangement."
+        )
+
+    elif answers["storage"] != "yes":
+        if crop_id == "cassava":
+            headline = (
+                "Arrange prompt cassava collection "
+                "or processing before planting at scale."
+            )
+        elif crop_id in {
+            "rice", "mung_bean",
+            "groundnut", "soybean"
+        }:
+            headline = (
+                "Prepare suitable drying and "
+                "storage arrangements before harvest."
+            )
+        else:
+            headline = (
+                "Resolve crop handling and "
+                "storage requirements before harvest."
+            )
+
+    else:
+        headline = (
+            "Confirm buyer terms and coordinate "
+            "your crop-specific harvest schedule."
+        )
 
     return {
         "crop_id": crop_id,
+        "crop_name": crop_name,
+        "headline": headline,
+        "focus": profile["focus"],
+        "handling_advice": profile["handling"],
+        "selling_advice": profile["selling"],
+        "delivery_advice": profile["delivery"],
+        "products": profile["products"],
+        "channels": profile["channels"],
+        "postharvest": profile["postharvest"],
         "answers": answers,
-        "confirmed_arrangements": confirmed,
-        "total_arrangements": 3,
-        "next_actions": actions,
-        "interpretation": (
-            "Basic arrangements reported as confirmed."
-            if confirmed == 3
-            else "Review remaining arrangements "
-                 "before committing to planting."
+        "recommended_actions": actions,
+        "next_actions": [
+            action["description"]
+            for action in actions
+        ],
+        "interpretation": headline,
+        "confirmed_arrangements": sum(
+            value == "yes"
+            for value in answers.values()
         ),
+        "total_arrangements": 3,
         "note": (
-            "Farmer-reported preparation checklist, "
-            "not a guarantee of sales."
+            "Practical guidance based on farmer "
+            "inputs and crop characteristics. "
+            "Buyer availability and sales "
+            "require local confirmation."
         )
     }
 
 
-# ============================================
-# 8. PUBLIC FUNCTIONS
-# ============================================
+# ==========================================
+# 7. PUBLIC BACKEND FUNCTIONS
+# ==========================================
 
 def get_sources():
     return [
-        {"id": key, **details}
-        for key, details in SOURCES.items()
+        {"id": key, **value}
+        for key, value in SOURCES.items()
     ]
 
 
@@ -640,14 +981,17 @@ def get_crop_market_profile(crop_id, district=None):
     if crop_id not in MARKET_PROFILES:
         return None
 
+    profile = MARKET_PROFILES[crop_id]
+
     evidence = select_market_evidence(
-        crop_id, district
+        crop_id,
+        district
     )
 
     return {
         "crop_id": crop_id,
         "name": CROP_NAMES[crop_id],
-        **MARKET_PROFILES[crop_id],
+        **profile,
         **evidence,
         "verified_statistics": evidence[
             "display_statistics"
@@ -659,15 +1003,22 @@ def get_crop_market_profile(crop_id, district=None):
         "readiness_questions": [
             {
                 "id": "buyer",
-                "question": "Have you identified a potential buyer?"
+                "question": (
+                    "Have you identified a potential buyer?"
+                )
             },
             {
                 "id": "transport",
-                "question": "Can you transport the harvest?"
+                "question": (
+                    "Can you transport your harvest?"
+                )
             },
             {
                 "id": "storage",
-                "question": "Have you arranged suitable handling or storage?"
+                "question": (
+                    "Have you arranged suitable "
+                    "handling or storage?"
+                )
             }
         ],
         "sources": get_sources()
@@ -682,8 +1033,11 @@ def build_market_assessment(
 ):
     ids = []
 
-    for crop_id in (baseline, preferred_crop):
-        if crop_id in MARKET_PROFILES and crop_id not in ids:
+    for crop_id in [baseline, preferred_crop]:
+        if (
+            crop_id in MARKET_PROFILES
+            and crop_id not in ids
+        ):
             ids.append(crop_id)
 
     if selected_strategy:
@@ -697,7 +1051,10 @@ def build_market_assessment(
                 ids.append(crop_id)
 
     profiles = [
-        get_crop_market_profile(crop_id, district)
+        get_crop_market_profile(
+            crop_id,
+            district
+        )
         for crop_id in ids
     ]
 
@@ -713,11 +1070,10 @@ def build_market_assessment(
         "price_data_integrated": False,
         "market_readiness_enabled": True,
         "limitations": [
-            "Only Sarawak and exact-crop statistics are displayed.",
-            "District records are historical.",
-            "Historical production is not evidence of current demand.",
-            "Buyer availability must be confirmed locally.",
-            "No revenue, profit or yield predictions are generated."
+            "Statistics are restricted to Sarawak.",
+            "Historical production does not prove demand.",
+            "Buyer availability requires confirmation.",
+            "No yield, revenue or profit is predicted."
         ]
     }
 
@@ -728,7 +1084,10 @@ def get_all_crop_market_profiles(district=None):
         "district": district,
         "crop_count": len(MARKET_PROFILES),
         "crops": [
-            get_crop_market_profile(crop_id, district)
+            get_crop_market_profile(
+                crop_id,
+                district
+            )
             for crop_id in MARKET_PROFILES
         ],
         "official_sources": get_sources(),
@@ -746,6 +1105,6 @@ def market_data_status():
         "profit_estimation_enabled": False,
         "primary_environmental_source": "NASA POWER",
         "statistical_scope": (
-            "Sarawak-specific exact crop records"
+            "Sarawak-only exact-crop observations"
         )
     }
