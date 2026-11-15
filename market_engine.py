@@ -1,652 +1,749 @@
 
 """
-BUMI SHIFT 7.0
-Market & Local Agricultural Insights Engine
-
+BUMI SHIFT 7.1
+Integrated FastAPI Backend
 HANOVA | Sarawak, Malaysia
 
-Purpose
--------
-Support practical crop-shifting decisions with:
+Main functions:
+- NASA POWER historical climate retrieval
+- All 11 crop recommendations
+- Personalized crop and rotation assessment
+- Preferred crop and farmer-reported drainage
+- Market and local agricultural insights
+- 3D farming scenario data
+- Official source attribution
 
-1. Official Malaysian agricultural data sources
-2. Sarawak agricultural context
-3. Crop-specific selling considerations
-4. Market access and post-harvest requirements
-5. Verified price and production records, if supplied
-6. Clear source attribution
+No Gemini dependency.
 
-NASA remains the primary environmental evidence source.
-
-This engine does NOT:
-- Invent market prices
-- Predict crop demand
-- Estimate revenue per hectare
-- Estimate profit per hectare
-- Rank crops by unsupported financial returns
-
-Official links are provided for reference.
-Live price retrieval is not assumed.
+Scientific limitations:
+- Historical NASA observations are not forecasts.
+- Crop compatibility indices are provisional.
+- Drainage is farmer-reported, not measured.
+- Soil-health benefits are not predicted.
+- Market information is not a profitability forecast.
 """
 
-from datetime import date
-from math import isfinite
+import copy
+import logging
+import math
+
+from pathlib import Path
+from functools import lru_cache
+
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
+from climate_engine import get_historical_climate
+from crop_engine import build_recommendations, CROPS
+from strategy_engine import enrich
+
+from market_engine import (
+    build_market_assessment,
+    get_crop_market_profile,
+    get_all_crop_market_profiles,
+    get_sources,
+    market_data_status
+)
 
 
 # ============================================
-# 1. OFFICIAL DATA SOURCES
+# 1. APPLICATION CONFIGURATION
 # ============================================
 
-SOURCES = {
-    "dosm": {
-        "name": "Department of Statistics Malaysia",
-        "short_name": "DOSM",
-        "url": "https://open.dosm.gov.my/",
-        "catalogue": (
-            "https://open.dosm.gov.my/"
-            "data-catalogue/crops_state"
-        ),
-        "purpose": (
-            "Official state-level agricultural "
-            "production and planted-area statistics."
-        ),
-        "geographic_scope": "Malaysia, including Sarawak",
-        "data_type": "Agricultural statistics"
-    },
+ROOT = Path(__file__).resolve().parent
 
-    "sarawak": {
-        "name": "Sarawak Government Open Data",
-        "short_name": "Sarawak Open Data",
-        "url": "https://data.sarawak.gov.my/",
-        "purpose": (
-            "Sarawak agricultural production, "
-            "crop-area and regional information."
-        ),
-        "geographic_scope": "Sarawak, Malaysia",
-        "data_type": "Regional government statistics"
-    },
+logging.basicConfig(level=logging.INFO)
 
-    "fama": {
-        "name": "Federal Agricultural Marketing Authority",
-        "short_name": "FAMA",
-        "url": "https://www.fama.gov.my/",
-        "catalogue": "https://ami.fama.gov.my/",
-        "purpose": (
-            "Agricultural farmgate, wholesale "
-            "and retail market-price references."
-        ),
-        "geographic_scope": "Malaysia",
-        "data_type": "Market-price information"
-    },
+logger = logging.getLogger("bumi_shift")
 
-    "doa": {
-        "name": "Department of Agriculture Malaysia",
-        "short_name": "DOA",
-        "url": "https://www.doa.gov.my/",
-        "purpose": (
-            "Crop production, agricultural "
-            "practices and sector information."
-        ),
-        "geographic_scope": "Malaysia",
-        "data_type": "Agricultural reference"
-    }
+app = FastAPI(
+    title="BUMI SHIFT",
+    version="7.1",
+    description=(
+        "NASA-powered agricultural decision-support "
+        "platform for Sarawak, Malaysia."
+    )
+)
+
+STATIC_DIR = ROOT / "static"
+
+STATIC_DIR.mkdir(
+    parents=True,
+    exist_ok=True
+)
+
+app.mount(
+    "/static",
+    StaticFiles(directory=STATIC_DIR),
+    name="static"
+)
+
+
+# ============================================
+# 2. FARM SETTINGS
+# ============================================
+
+PRIORITIES = {
+    "soil",
+    "water",
+    "resilience",
+    "income"
+}
+
+ALL_CROPS = set(CROPS.keys())
+
+BASELINES = {
+    "rice",
+    "maize",
+    "mung_bean",
+    "groundnut",
+    "soybean",
+    "sweet_potato"
+}
+
+DRAINAGE_OPTIONS = {
+    "unknown",
+    "poor",
+    "moderate",
+    "good"
+}
+
+SARAWAK_BOUNDS = {
+    "min_lat": 0.5,
+    "max_lat": 5.1,
+    "min_lon": 109.5,
+    "max_lon": 115.5
 }
 
 
 # ============================================
-# 2. CROP MARKET CHARACTERISTICS
+# 3. INPUT VALIDATION
 # ============================================
 
-# These are qualitative considerations.
-# They are not numerical market forecasts.
+def validate_location(latitude, longitude):
 
-MARKET_PROFILES = {
+    if not (
+        math.isfinite(latitude)
+        and math.isfinite(longitude)
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "INVALID_COORDINATES"
+            }
+        )
 
-    "rice": {
-        "name": "Rice",
-        "products": [
-            "Paddy grain",
-            "Milled rice"
-        ],
-        "channels": [
-            "Paddy collection centres",
-            "Licensed grain buyers",
-            "Rice milling and processing"
-        ],
-        "postharvest": [
-            "Moisture control",
-            "Drying",
-            "Grain grading",
-            "Storage"
-        ],
-        "considerations": [
-            "Confirm paddy purchasing arrangements.",
-            "Check grain moisture and quality requirements.",
-            "Review access to drying and milling facilities."
-        ],
-        "perishability": "Storage-sensitive"
-    },
+    b = SARAWAK_BOUNDS
 
-    "maize": {
-        "name": "Maize",
-        "products": [
-            "Fresh sweet corn",
-            "Grain maize"
-        ],
-        "channels": [
-            "Fresh produce buyers",
-            "Wholesale markets",
-            "Grain buyers",
-            "Processing channels"
-        ],
-        "postharvest": [
-            "Harvest timing",
-            "Drying for grain",
-            "Grading",
-            "Transport"
-        ],
-        "considerations": [
-            "Confirm whether buyers want sweet corn or grain maize.",
-            "Check variety and quality specifications.",
-            "Plan transport and post-harvest handling."
-        ],
-        "perishability": "Depends on product type"
-    },
+    if not (
+        b["min_lat"] <= latitude <= b["max_lat"]
+        and
+        b["min_lon"] <= longitude <= b["max_lon"]
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "INVALID_LOCATION",
+                "message": (
+                    "Select a location within "
+                    "the Sarawak pilot area."
+                )
+            }
+        )
 
-    "mung_bean": {
-        "name": "Mung Bean",
-        "products": [
-            "Dry mung beans",
-            "Beans for processing"
-        ],
-        "channels": [
-            "Grain traders",
-            "Food processors",
-            "Wholesale markets"
-        ],
-        "postharvest": [
-            "Drying",
-            "Cleaning",
-            "Sorting",
-            "Moisture-controlled storage"
-        ],
-        "considerations": [
-            "Confirm local buyers before planting.",
-            "Check acceptable grain quality and moisture.",
-            "Review drying and storage facilities."
-        ],
-        "perishability": "Relatively storable when properly dried"
-    },
 
-    "groundnut": {
-        "name": "Groundnut",
-        "products": [
-            "Fresh groundnuts",
-            "Dried groundnuts",
-            "Processed peanut products"
-        ],
-        "channels": [
-            "Fresh produce markets",
-            "Grain traders",
-            "Food processors"
-        ],
-        "postharvest": [
-            "Cleaning",
-            "Drying",
-            "Sorting",
-            "Moisture control"
-        ],
-        "considerations": [
-            "Confirm demand for fresh or dried groundnuts.",
-            "Review drying requirements.",
-            "Control moisture to reduce storage-quality risks."
-        ],
-        "perishability": "Moisture-sensitive"
-    },
+def validate_settings(
+    priority,
+    baseline,
+    preferred_crop,
+    drainage
+):
 
-    "soybean": {
-        "name": "Soybean",
-        "products": [
-            "Dry soybeans",
-            "Food-processing beans"
-        ],
-        "channels": [
-            "Grain traders",
-            "Food processors",
-            "Wholesale buyers"
-        ],
-        "postharvest": [
-            "Drying",
-            "Cleaning",
-            "Grading",
-            "Storage"
-        ],
-        "considerations": [
-            "Identify buyers and quality specifications.",
-            "Check drying and storage capacity.",
-            "Confirm demand for locally grown varieties."
-        ],
-        "perishability": "Relatively storable when properly dried"
-    },
+    if priority not in PRIORITIES:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "INVALID_PRIORITY"
+            }
+        )
 
-    "sweet_potato": {
-        "name": "Sweet Potato",
-        "products": [
-            "Fresh storage roots",
-            "Processed sweet potato products"
-        ],
-        "channels": [
-            "Fresh produce markets",
-            "Retailers",
-            "Food processors"
-        ],
-        "postharvest": [
-            "Careful harvesting",
-            "Sorting",
-            "Curing where appropriate",
-            "Storage"
-        ],
-        "considerations": [
-            "Check demand for specific varieties and root sizes.",
-            "Minimize root damage during harvesting.",
-            "Plan transport and storage conditions."
-        ],
-        "perishability": "Fresh produce with storage limitations"
-    },
+    if baseline not in BASELINES:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "INVALID_BASELINE"
+            }
+        )
 
-    "cassava": {
-        "name": "Cassava",
-        "products": [
-            "Fresh cassava roots",
-            "Cassava flour",
-            "Starch",
-            "Processed cassava products"
-        ],
-        "channels": [
-            "Local produce buyers",
-            "Food processors",
-            "Industrial processors"
-        ],
-        "postharvest": [
-            "Prompt handling",
-            "Transport scheduling",
-            "Processing",
-            "Variety identification"
-        ],
-        "considerations": [
-            "Confirm whether buyers require fresh or processing cassava.",
-            "Arrange prompt handling after harvest.",
-            "Verify suitable varieties and safe processing requirements."
-        ],
-        "perishability": "Highly perishable fresh roots"
-    },
+    if (
+        preferred_crop != "auto"
+        and preferred_crop not in ALL_CROPS
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "INVALID_PREFERRED_CROP"
+            }
+        )
 
-    "pineapple": {
-        "name": "Pineapple",
-        "products": [
-            "Fresh pineapple",
-            "Processed pineapple products"
-        ],
-        "channels": [
-            "Fresh produce markets",
-            "Wholesale buyers",
-            "Fruit processors"
-        ],
-        "postharvest": [
-            "Harvest maturity assessment",
-            "Fruit grading",
-            "Careful handling",
-            "Transport"
-        ],
-        "considerations": [
-            "Confirm variety and fruit-size preferences.",
-            "Coordinate harvest timing with buyers.",
-            "Review fruit handling and transport arrangements."
-        ],
-        "perishability": "Perishable fresh fruit"
-    },
-
-    "banana": {
-        "name": "Banana",
-        "products": [
-            "Fresh bananas",
-            "Processed banana products"
-        ],
-        "channels": [
-            "Fresh produce wholesalers",
-            "Retail markets",
-            "Food processors"
-        ],
-        "postharvest": [
-            "Harvest maturity control",
-            "Bunch handling",
-            "Ripening management",
-            "Transport"
-        ],
-        "considerations": [
-            "Check buyer preferences for banana varieties.",
-            "Plan ripening and delivery schedules.",
-            "Reduce bruising during handling."
-        ],
-        "perishability": "Highly perishable fresh fruit"
-    },
-
-    "coconut": {
-        "name": "Coconut",
-        "products": [
-            "Fresh coconuts",
-            "Coconut water",
-            "Coconut milk",
-            "Processed coconut products"
-        ],
-        "channels": [
-            "Fresh produce markets",
-            "Food processors",
-            "Coconut-product buyers"
-        ],
-        "postharvest": [
-            "Harvest scheduling",
-            "Sorting",
-            "Storage",
-            "Transport"
-        ],
-        "considerations": [
-            "Check demand for young versus mature coconuts.",
-            "Identify buyers before orchard establishment.",
-            "Review harvesting labour and transport needs."
-        ],
-        "perishability": "Depends on maturity and product"
-    },
-
-    "durian": {
-        "name": "Durian",
-        "products": [
-            "Fresh durian",
-            "Frozen durian",
-            "Processed durian products"
-        ],
-        "channels": [
-            "Fresh fruit buyers",
-            "Wholesale markets",
-            "Fruit processors"
-        ],
-        "postharvest": [
-            "Harvest timing",
-            "Fruit grading",
-            "Careful handling",
-            "Cold-chain planning where needed"
-        ],
-        "considerations": [
-            "Confirm demand for the selected cultivar.",
-            "Plan harvesting, collection and transport.",
-            "Review long-term buyer arrangements before planting."
-        ],
-        "perishability": "Highly perishable fresh fruit"
-    }
-}
+    if drainage not in DRAINAGE_OPTIONS:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "INVALID_DRAINAGE"
+            }
+        )
 
 
 # ============================================
-# 3. VERIFIED NUMERICAL DATA
+# 4. NASA CLIMATE CACHE
 # ============================================
 
-# This dictionary is deliberately empty.
-#
-# Numerical records should only be inserted
-# after checking the original government
-# publication or official dataset.
-#
-# Each record must include:
-# - value
-# - unit
-# - year or observation date
-# - source
-# - geographic coverage
-#
-# Price records must also include:
-# - market level (farmgate, wholesale, retail)
-#
-# Do not place unverified figures here.
+@lru_cache(maxsize=80)
+def cached_climate(latitude, longitude):
 
-VERIFIED_RECORDS = {}
-
-
-# ============================================
-# 4. VALIDATION
-# ============================================
-
-def valid_number(value):
-    return (
-        isinstance(value, (int, float))
-        and not isinstance(value, bool)
-        and isfinite(value)
+    return get_historical_climate(
+        latitude,
+        longitude
     )
 
 
-def validate_record(record):
-    """
-    Validate a numerical market or
-    agricultural statistics record.
-
-    This validates structure, not the
-    truth of the original source.
-    """
-
-    required = [
-        "value",
-        "unit",
-        "source",
-        "geographic_coverage"
-    ]
-
-    for field in required:
-        if not record.get(field) and record.get(field) != 0:
-            return False
-
-    if not valid_number(record["value"]):
-        return False
-
-    if (
-        not record.get("year")
-        and not record.get("date")
-    ):
-        return False
-
-    if record.get("type") == "price":
-        if record.get("market_level") not in {
-            "farmgate",
-            "wholesale",
-            "retail"
-        }:
-            return False
-
-    return True
-
-
 # ============================================
-# 5. SOURCE DIRECTORY
+# 5. PERSONALIZED FARM ASSESSMENT
 # ============================================
 
-def get_sources():
+@lru_cache(maxsize=160)
+def cached_assessment(
+    latitude,
+    longitude,
+    priority,
+    baseline,
+    preferred_crop,
+    drainage
+):
+    """
+    Produce a complete personalized assessment.
 
-    return [
+    NASA climate observations remain unchanged
+    when farmer priorities or drainage change.
+
+    Strategy comparisons and farming actions
+    respond to the selected farmer inputs.
+    """
+
+    climate = cached_climate(
+        latitude,
+        longitude
+    )
+
+    crop_results = build_recommendations(
+        latitude,
+        longitude,
+        climate
+    )
+
+    result = enrich(
+        crop_results,
+        climate,
+        priority=priority,
+        baseline=baseline,
+        preferred_crop=preferred_crop,
+        drainage=drainage
+    )
+
+    if not isinstance(result, dict):
+        raise ValueError(
+            "Strategy engine must return a dictionary."
+        )
+
+    # Avoid modifying a cached shared result.
+    result = copy.deepcopy(result)
+
+    # ========================================
+    # MARKET ASSESSMENT
+    # ========================================
+
+    selected_strategy = next(
+        (
+            strategy
+            for strategy in result.get(
+                "strategies", []
+            )
+            if strategy.get("id")
+            == result.get(
+                "recommended_strategy_id"
+            )
+        ),
+        None
+    )
+
+    market = build_market_assessment(
+        preferred_crop=preferred_crop,
+        baseline=baseline,
+        selected_strategy=selected_strategy
+    )
+
+    result["market_insights"] = market
+
+    # ========================================
+    # FARMER INPUTS
+    # ========================================
+
+    result["farmer_inputs"] = {
+        "latitude": latitude,
+        "longitude": longitude,
+        "priority": priority,
+        "baseline": baseline,
+        "preferred_crop": preferred_crop,
+        "drainage": drainage
+    }
+
+    # ========================================
+    # AVAILABLE CROPS
+    # ========================================
+
+    result["available_crops"] = [
         {
-            "id": source_id,
-            **details
+            "id": crop_id,
+            "name": crop["name"],
+            "family": crop["family"],
+            "kind": crop["kind"],
+            "approx_duration_months": (
+                crop["months"]
+            ),
+            "planting_system": crop.get(
+                "planting_system"
+            )
         }
-        for source_id, details
-        in SOURCES.items()
+        for crop_id, crop in CROPS.items()
     ]
 
+    # ========================================
+    # DATA SOURCE ATTRIBUTION
+    # ========================================
+
+    result["data_sources"] = {
+        "primary": {
+            "name": "NASA POWER",
+            "url": (
+                "https://power.larc.nasa.gov/"
+            ),
+            "purpose": (
+                "Historical environmental "
+                "observations and estimates"
+            )
+        },
+        "crop_model": {
+            "name": (
+                "BUMI SHIFT experimental "
+                "crop screening"
+            ),
+            "purpose": (
+                "Provisional crop compatibility "
+                "and rotation comparison"
+            )
+        },
+        "market": get_sources()
+    }
+
+    # ========================================
+    # 3D VISUALIZATION CONTEXT
+    # ========================================
+
+    summary = climate.get(
+        "summary", {}
+    )
+
+    result["farm_visualization"] = {
+        "type": "illustrative_3d_scenario",
+        "baseline_crop": baseline,
+        "preferred_crop": preferred_crop,
+        "drainage": drainage,
+        "priority": priority,
+        "selected_strategy_id": result.get(
+            "recommended_strategy_id"
+        ),
+        "stages": (
+            selected_strategy.get("stages", [])
+            if selected_strategy
+            else []
+        ),
+        "nasa_evidence": {
+            "mean_annual_rainfall_mm": (
+                summary.get(
+                    "mean_annual_rainfall_mm"
+                )
+            ),
+            "mean_temperature_c": (
+                summary.get(
+                    "mean_temperature_c"
+                )
+            ),
+            "climate_period": result.get(
+                "climate_period"
+            )
+        },
+        "limitations": [
+            "Simplified crop appearance.",
+            "Illustrative development stages.",
+            "Not a measured farm reconstruction.",
+            "Not a crop-growth or yield prediction.",
+            "Planting arrangements require local review."
+        ]
+    }
+
+    return result
+
 
 # ============================================
-# 6. CROP MARKET PROFILE
+# 6. SERVICE STATUS
 # ============================================
 
-def get_crop_market_profile(crop_id):
+@app.get("/")
+def home():
 
-    profile = MARKET_PROFILES.get(
+    return {
+        "name": "BUMI SHIFT",
+        "version": "7.1",
+        "status": "running",
+        "website": "/app",
+        "api_endpoints": {
+            "health": "/health",
+            "climate": "/climate/history",
+            "recommendations": "/recommendations",
+            "crops": "/crops",
+            "market": "/market",
+            "market_sources": "/market/sources"
+        }
+    }
+
+
+@app.get("/health")
+def health():
+
+    return {
+        "status": "ok",
+        "version": "7.1",
+        "crop_count": len(CROPS),
+        "market_engine_connected": True,
+        "gemini_required": False
+    }
+
+
+# ============================================
+# 7. WEBSITE
+# ============================================
+
+@app.get("/app")
+def website():
+
+    index = STATIC_DIR / "index.html"
+
+    if not index.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "WEBSITE_NOT_FOUND"
+            }
+        )
+
+    return FileResponse(
+        index,
+        media_type="text/html"
+    )
+
+
+# ============================================
+# 8. CROP LIBRARY
+# ============================================
+
+@app.get("/crops")
+def get_crops():
+
+    return {
+        "region": "Sarawak, Malaysia",
+        "count": len(CROPS),
+        "crops": [
+            {
+                "id": crop_id,
+                "name": crop["name"],
+                "family": crop["family"],
+                "kind": crop["kind"],
+                "approx_duration_months": (
+                    crop["months"]
+                ),
+                "planting_system": crop.get(
+                    "planting_system"
+                ),
+                "description": crop.get(
+                    "description"
+                ),
+                "thresholds": {
+                    "monthly_rainfall_mm": (
+                        list(crop["rain"])
+                    ),
+                    "mean_temperature_c": (
+                        list(crop["temp"])
+                    )
+                }
+            }
+            for crop_id, crop in CROPS.items()
+        ],
+        "note": (
+            "Crop requirements are provisional "
+            "screening assumptions."
+        )
+    }
+
+
+# ============================================
+# 9. NASA CLIMATE HISTORY
+# ============================================
+
+@app.get("/climate/history")
+def climate_history(
+    latitude: float = Query(
+        default=1.46,
+        ge=-90,
+        le=90
+    ),
+    longitude: float = Query(
+        default=110.49,
+        ge=-180,
+        le=180
+    )
+):
+
+    validate_location(
+        latitude,
+        longitude
+    )
+
+    try:
+        return cached_climate(
+            round(latitude, 4),
+            round(longitude, 4)
+        )
+
+    except Exception as exc:
+
+        logger.exception(
+            "NASA climate retrieval failed"
+        )
+
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "CLIMATE_REQUEST_FAILED",
+                "message": (
+                    "Historical NASA climate data "
+                    "could not be retrieved."
+                )
+            }
+        ) from exc
+
+
+# ============================================
+# 10. PERSONALIZED RECOMMENDATIONS
+# ============================================
+
+@app.get("/recommendations")
+def recommendations(
+    latitude: float = Query(
+        default=1.46,
+        ge=-90,
+        le=90
+    ),
+    longitude: float = Query(
+        default=110.49,
+        ge=-180,
+        le=180
+    ),
+    priority: str = "soil",
+    baseline: str = "rice",
+    preferred_crop: str = "auto",
+    drainage: str = "unknown"
+):
+
+    validate_location(
+        latitude,
+        longitude
+    )
+
+    validate_settings(
+        priority,
+        baseline,
+        preferred_crop,
+        drainage
+    )
+
+    try:
+
+        result = cached_assessment(
+            round(latitude, 4),
+            round(longitude, 4),
+            priority,
+            baseline,
+            preferred_crop,
+            drainage
+        )
+
+        return result
+
+    except HTTPException:
+        raise
+
+    except Exception as exc:
+
+        logger.exception(
+            "Personalized assessment failed"
+        )
+
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "ASSESSMENT_REQUEST_FAILED",
+                "message": (
+                    "The farming assessment "
+                    "could not be completed."
+                )
+            }
+        ) from exc
+
+
+# ============================================
+# 11. MARKET OVERVIEW
+# ============================================
+
+@app.get("/market")
+def market_overview():
+
+    try:
+        return get_all_crop_market_profiles()
+
+    except Exception as exc:
+
+        logger.exception(
+            "Market overview failed"
+        )
+
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "MARKET_REQUEST_FAILED"
+            }
+        ) from exc
+
+
+# ============================================
+# 12. CROP-SPECIFIC MARKET PROFILE
+# ============================================
+
+@app.get("/market/crop/{crop_id}")
+def crop_market_profile(crop_id: str):
+
+    if crop_id not in ALL_CROPS:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "CROP_NOT_FOUND"
+            }
+        )
+
+    profile = get_crop_market_profile(
         crop_id
     )
 
     if profile is None:
-        return None
-
-    records = [
-        record
-        for record in VERIFIED_RECORDS.get(
-            crop_id, []
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "MARKET_PROFILE_NOT_FOUND"
+            }
         )
-        if validate_record(record)
-    ]
+
+    return profile
+
+
+# ============================================
+# 13. MARKET SOURCES
+# ============================================
+
+@app.get("/market/sources")
+def market_sources():
 
     return {
-        "crop_id": crop_id,
-        **profile,
-        "verified_statistics": records,
-        "numerical_data_available": bool(records),
-        "market_price_status": (
-            "verified_records_available"
-            if any(
-                record.get("type") == "price"
-                for record in records
-            )
-            else "no_verified_price_record"
+        "region": "Sarawak, Malaysia",
+        "sources": get_sources(),
+        "data_status": market_data_status(),
+        "primary_environmental_source": (
+            "NASA POWER"
         ),
-        "sources": get_sources()
+        "note": (
+            "Market information provides "
+            "supplementary agricultural context."
+        )
     }
 
 
 # ============================================
-# 7. FARM MARKET ASSESSMENT
+# 14. MARKET ASSESSMENT
 # ============================================
 
-def build_market_assessment(
-    preferred_crop="auto",
-    baseline="rice",
-    selected_strategy=None
+@app.get("/market/assessment")
+def market_assessment(
+    baseline: str = "rice",
+    preferred_crop: str = "auto"
 ):
-    """
-    Build market information for the
-    farmer's selected scenario.
 
-    Market evidence is kept separate
-    from NASA climate compatibility.
-    """
-
-    selected_ids = []
-
-    if baseline in MARKET_PROFILES:
-        selected_ids.append(baseline)
+    if baseline not in BASELINES:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "INVALID_BASELINE"
+            }
+        )
 
     if (
         preferred_crop != "auto"
-        and preferred_crop in MARKET_PROFILES
-        and preferred_crop not in selected_ids
+        and preferred_crop not in ALL_CROPS
     ):
-        selected_ids.append(
-            preferred_crop
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "INVALID_PREFERRED_CROP"
+            }
         )
 
-    if selected_strategy:
-
-        for crop_id in selected_strategy.get(
-            "crop_ids", []
-        ):
-            if (
-                crop_id in MARKET_PROFILES
-                and crop_id not in selected_ids
-            ):
-                selected_ids.append(
-                    crop_id
-                )
-
-    profiles = [
-        get_crop_market_profile(crop_id)
-        for crop_id in selected_ids
-    ]
-
-    profiles = [
-        profile
-        for profile in profiles
-        if profile is not None
-    ]
-
-    return {
-        "region": "Sarawak, Malaysia",
-        "generated_on": date.today().isoformat(),
-        "preferred_crop": preferred_crop,
-        "baseline": baseline,
-        "crop_profiles": profiles,
-        "official_sources": get_sources(),
-        "verified_price_records": sum(
-            1
-            for profile in profiles
-            for record in profile[
-                "verified_statistics"
-            ]
-            if record.get("type") == "price"
-        ),
-        "price_data_integrated": any(
-            profile["market_price_status"]
-            == "verified_records_available"
-            for profile in profiles
-        ),
-        "limitations": [
-            "Market characteristics are qualitative guidance.",
-            "Market prices are not retrieved automatically.",
-            "Official source links do not imply live data integration.",
-            "Local buyer availability requires verification.",
-            "No revenue, profit or crop-yield predictions are generated."
-        ]
-    }
-
-
-# ============================================
-# 8. ALL-CROP MARKET OVERVIEW
-# ============================================
-
-def get_all_crop_market_profiles():
-
-    return {
-        "region": "Sarawak, Malaysia",
-        "crop_count": len(MARKET_PROFILES),
-        "crops": [
-            get_crop_market_profile(crop_id)
-            for crop_id in MARKET_PROFILES
-        ],
-        "official_sources": get_sources(),
-        "generated_on": date.today().isoformat()
-    }
-
-
-# ============================================
-# 9. MARKET DATA TRANSPARENCY
-# ============================================
-
-def market_data_status():
-
-    total_records = sum(
-        len([
-            record
-            for record in records
-            if validate_record(record)
-        ])
-        for records in VERIFIED_RECORDS.values()
+    return build_market_assessment(
+        preferred_crop=preferred_crop,
+        baseline=baseline
     )
 
+
+# ============================================
+# 15. CACHE STATUS
+# ============================================
+
+@app.get("/system/cache")
+def cache_status():
+    """
+    Exposes aggregate cache counts only.
+    No farmer inputs or cached results
+    are returned.
+    """
+
+    climate_info = cached_climate.cache_info()
+    assessment_info = cached_assessment.cache_info()
+
     return {
-        "region": "Sarawak, Malaysia",
-        "official_source_count": len(SOURCES),
-        "crop_profile_count": len(MARKET_PROFILES),
-        "verified_numerical_records": total_records,
-        "live_price_api_connected": False,
-        "revenue_estimation_enabled": False,
-        "profit_estimation_enabled": False,
-        "primary_environmental_source": "NASA POWER",
-        "note": (
-            "Market information supports practical "
-            "decision-making but does not determine "
-            "climate compatibility."
-        )
+        "climate": {
+            "entries": climate_info.currsize,
+            "maximum": climate_info.maxsize
+        },
+        "assessments": {
+            "entries": assessment_info.currsize,
+            "maximum": assessment_info.maxsize
+        }
     }
