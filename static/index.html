@@ -12,445 +12,372 @@
 
 <script type="importmap">
 {
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"
-  }
+ "imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"
+ }
 }
 </script>
 
 <style>
-:root {
-  --navy:#10294d;
-  --blue:#216ad6;
-  --teal:#079f9b;
-  --purple:#7658cb;
-  --amber:#e9a12a;
-  --coral:#e97c6e;
-  --bg:#f3f7fc;
-  --line:#dce5f0;
-  --muted:#526a87;
-  --shadow:0 8px 28px #18355d0d;
+:root{
+ --navy:#10294d;
+ --blue:#216ad6;
+ --teal:#079f9b;
+ --purple:#7658cb;
+ --amber:#e9a12a;
+ --coral:#e97c6e;
+ --bg:#f3f7fc;
+ --line:#dce5f0;
+ --muted:#526a87;
+ --shadow:0 8px 28px #18355d0d;
 }
-
-* {box-sizing:border-box}
-html {scroll-behavior:smooth}
-body {
-  margin:0;
-  background:var(--bg);
-  color:var(--navy);
-  font:15px/1.55 "Segoe UI",Arial,sans-serif;
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+ margin:0;background:var(--bg);color:var(--navy);
+ font:15px/1.55 "Segoe UI",Arial,sans-serif
 }
-button,input,select,textarea {font:inherit}
-button {
-  cursor:pointer;
-  border:0;
-  border-radius:11px;
-  padding:11px 17px;
-  background:var(--blue);
-  color:white;
-  font-weight:700;
+button,input,select,textarea{font:inherit}
+button{
+ cursor:pointer;border:0;border-radius:11px;
+ padding:11px 17px;background:var(--blue);
+ color:white;font-weight:700
 }
-button:hover {filter:brightness(1.08)}
-button:disabled {opacity:.55;cursor:wait}
-input,select,textarea {
-  border:1px solid #cbd8e8;
-  border-radius:11px;
-  padding:12px;
-  background:white;
-  color:var(--navy);
+button:hover{filter:brightness(1.08)}
+button:disabled{opacity:.55;cursor:wait}
+input,select,textarea{
+ border:1px solid #cbd8e8;border-radius:11px;
+ padding:12px;background:white;color:var(--navy)
 }
-textarea {min-height:90px;resize:vertical}
-h1,h2,h3,p {margin:0}
-h1 {font-size:clamp(30px,3.8vw,54px);line-height:1.12}
-h2 {font-size:23px}
-h3 {font-size:16px}
-p {line-height:1.65}
-a {color:var(--blue)}
-.app {max-width:1600px;margin:auto;padding:20px}
-.hidden {display:none!important}
-.muted,.sub {color:var(--muted);font-size:13px}
-.eyebrow {
-  color:var(--blue);
-  font-size:11px;
-  font-weight:850;
-  letter-spacing:1.4px;
-  text-transform:uppercase;
-  margin-bottom:8px;
+textarea{min-height:90px;resize:vertical}
+h1,h2,h3,p{margin:0}
+h1{font-size:clamp(30px,3.8vw,54px);line-height:1.12}
+h2{font-size:23px}
+h3{font-size:16px}
+p{line-height:1.65}
+a{color:var(--blue)}
+.app{max-width:1600px;margin:auto;padding:20px}
+.hidden{display:none!important}
+.muted,.sub{color:var(--muted);font-size:13px}
+.eyebrow{
+ color:var(--blue);font-size:11px;font-weight:850;
+ letter-spacing:1.4px;text-transform:uppercase;margin-bottom:8px
 }
-.panel {
-  background:white;
-  border:1px solid var(--line);
-  border-radius:20px;
-  padding:23px;
-  box-shadow:var(--shadow);
-  min-width:0;
+.panel{
+ background:white;border:1px solid var(--line);
+ border-radius:20px;padding:23px;
+ box-shadow:var(--shadow);min-width:0
 }
-.head {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:12px;
-  flex-wrap:wrap;
-  margin-bottom:15px;
+.head{
+ display:flex;justify-content:space-between;align-items:center;
+ gap:12px;flex-wrap:wrap;margin-bottom:15px
 }
-.pill {
-  background:#e9f2ff;
-  color:#24518e;
-  border-radius:30px;
-  padding:8px 14px;
-  font-size:12px;
+.pill{
+ background:#e9f2ff;color:#24518e;
+ border-radius:30px;padding:8px 14px;font-size:12px
 }
-.section {margin-top:19px}
-.stack {display:grid;gap:19px;align-content:start;min-width:0}
-.two-col {
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:19px;
-  align-items:start;
+.section{margin-top:19px}
+.stack{display:grid;gap:19px;align-content:start;min-width:0}
+.two-col{
+ display:grid;grid-template-columns:1fr 1fr;
+ gap:19px;align-items:start
 }
-.three-col {
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:16px;
+header{
+ display:flex;justify-content:space-between;
+ align-items:center;flex-wrap:wrap;
+ gap:15px;padding:10px 0 24px
 }
-header {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  flex-wrap:wrap;
-  gap:15px;
-  padding:10px 0 24px;
+.logo{
+ font-size:clamp(38px,4vw,56px);
+ font-weight:950;letter-spacing:-2px;line-height:1
 }
-.logo {
-  font-size:clamp(38px,4vw,56px);
-  font-weight:950;
-  letter-spacing:-2px;
-  line-height:1;
-}
-.logo span {color:var(--blue)}
-.subtitle {font-size:13px;color:var(--muted);margin-top:8px}
+.logo span{color:var(--blue)}
+.subtitle{font-size:13px;color:var(--muted);margin-top:8px}
 
 /* HERO */
-.hero {
-  position:relative;
-  overflow:hidden;
-  border-radius:24px;
-  min-height:330px;
-  display:flex;
-  align-items:center;
-  padding:40px;
-  background:linear-gradient(100deg,#10294df0,#10294db8 60%,#10294d33),
-    url("https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1800&q=85")
-    center/cover;
+.hero{
+ position:relative;overflow:hidden;border-radius:24px;
+ min-height:330px;display:flex;align-items:center;
+ padding:40px;
+ background:
+ linear-gradient(100deg,#10294df0,#10294db8 60%,#10294d33),
+ url("https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1800&q=85")
+ center/cover
 }
-.heroContent {position:relative;z-index:2;max-width:770px}
-.hero h1 {color:white}
-.hero p {color:#dcecff;margin-top:15px;font-size:17px}
-.hero .eyebrow {color:#67e3e8}
-.heroOrb {
-  position:absolute;
-  width:390px;height:390px;
-  border:1px solid #ffffff55;
-  border-radius:50%;
-  right:-90px;top:-90px;
-  box-shadow:0 0 0 45px #ffffff0b,0 0 0 90px #ffffff08;
+.heroContent{position:relative;z-index:2;max-width:770px}
+.hero h1{color:white}
+.hero p{color:#dcecff;margin-top:15px;font-size:17px}
+.hero .eyebrow{color:#67e3e8}
+.heroOrb{
+ position:absolute;width:390px;height:390px;
+ border:1px solid #ffffff55;border-radius:50%;
+ right:-90px;top:-90px;
+ box-shadow:0 0 0 45px #ffffff0b,0 0 0 90px #ffffff08
 }
-.heroNote {
-  margin-top:20px;
-  display:inline-flex;
-  align-items:center;
-  gap:9px;
-  padding:9px 15px;
-  border:1px solid #ffffff55;
-  background:#ffffff1c;
-  color:white;
-  border-radius:40px;
-  font-size:12px;
+.heroNote{
+ margin-top:20px;display:inline-flex;
+ padding:9px 15px;border:1px solid #ffffff55;
+ background:#ffffff1c;color:white;
+ border-radius:40px;font-size:12px
 }
 
-/* FARM CONTROLS */
-.location {
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
+/* FARM INPUTS */
+.location{display:flex;gap:10px;flex-wrap:wrap}
+.location input{flex:1;min-width:190px}
+.location select{min-width:175px}
+.status{font-size:13px;color:var(--muted);margin-top:12px}
+.priorityExplanation{
+ margin-top:14px;padding:14px 17px;
+ border-radius:12px;background:#eef5ff;
+ border-left:4px solid var(--blue)
 }
-.location input {flex:1;min-width:190px}
-.location select {min-width:175px}
-.status {font-size:13px;color:var(--muted);margin-top:12px}
-.priorityExplanation {
-  margin-top:14px;
-  padding:14px 17px;
-  border-radius:12px;
-  background:#eef5ff;
-  border-left:4px solid var(--blue);
-}
-.priorityExplanation strong {display:block}
-.priorityExplanation p {font-size:13px;color:var(--muted)}
+.priorityExplanation strong{display:block}
+.priorityExplanation p{font-size:13px;color:var(--muted)}
 
-/* MAP */
-#map {
-  height:420px;
-  border-radius:14px;
-  overflow:hidden;
-  z-index:0;
+/* MAP AND 3D */
+#map{
+ height:420px;border-radius:14px;overflow:hidden;z-index:0
 }
-#farm3d {
-  height:420px;
-  background:#b9dfec;
-  border-radius:14px;
-  overflow:hidden;
-  position:relative;
-  touch-action:none;
+#farm3d{
+ height:420px;background:#b9dfec;border-radius:14px;
+ overflow:hidden;position:relative;touch-action:none
 }
-#farm3d canvas {display:block}
-.mapControls,.timeline {
-  display:flex;
-  gap:9px;
-  flex-wrap:wrap;
-  margin:14px 0;
+#farm3d canvas{display:block}
+.mapControls,.timeline{
+ display:flex;gap:9px;flex-wrap:wrap;margin:14px 0
 }
-.mapControls button,.timeline button {
-  flex:1;
-  background:#e9f1fb;
-  color:var(--navy);
+.mapControls button,.timeline button{
+ flex:1;background:#e9f1fb;color:var(--navy)
 }
-.mapControls button.active,.timeline button.active {
-  background:var(--blue);
-  color:white;
+.mapControls button.active,.timeline button.active{
+ background:var(--blue);color:white
 }
-.farmLabel {
-  position:absolute;
-  left:13px;top:13px;
-  z-index:3;
-  background:#ffffffed;
-  padding:11px 15px;
-  border-radius:11px;
-  pointer-events:none;
+.farmLabel{
+ position:absolute;left:13px;top:13px;z-index:3;
+ background:#ffffffed;padding:11px 15px;
+ border-radius:11px;pointer-events:none
 }
-.farmLabel strong {display:block}
-.farmLabel small {color:var(--muted)}
+.farmLabel strong{display:block}
+.farmLabel small{color:var(--muted)}
 
-/* CARDS */
-.shift {
-  padding:16px;
-  border:1px solid var(--line);
-  border-left:4px solid var(--blue);
-  border-radius:13px;
-  background:#f7faff;
-  margin-top:10px;
+/* SHIFTS AND ROTATIONS */
+.shift{
+ padding:16px;border:1px solid var(--line);
+ border-left:4px solid var(--blue);
+ border-radius:13px;background:#f7faff;margin-top:10px
 }
-.shift h3 {margin-bottom:5px}
-.shift p {color:var(--muted);font-size:13px}
-.crop {
-  display:grid;
-  grid-template-columns:110px minmax(0,1fr);
-  gap:14px;
-  padding:13px;
-  margin-top:11px;
-  border:1px solid var(--line);
-  border-radius:14px;
+.shift h3{margin-bottom:5px}
+.shift p{color:var(--muted);font-size:13px}
+.rotation{
+ width:100%;display:block;text-align:left;
+ padding:15px;margin-top:10px;background:#f5f7fc;
+ color:var(--navy);border:1px solid var(--line);
+ border-radius:13px
 }
-.crop.active {background:#f0f6ff;border-color:var(--blue)}
-.cropPhoto {
-  width:110px;height:115px;
-  object-fit:cover;
-  border-radius:10px;
-  background:#e7eff8;
+.rotation.active{
+ background:#eeeaff;border-color:var(--purple)
 }
-.crop strong {display:block;font-size:17px}
-.crop small {display:block;color:var(--muted)}
-.crop button {padding:8px 12px;margin-top:9px;font-size:12px}
-.rotation {
-  width:100%;
-  display:block;
-  text-align:left;
-  padding:15px;
-  margin-top:10px;
-  background:#f5f7fc;
-  color:var(--navy);
-  border:1px solid var(--line);
-  border-radius:13px;
+.rotation strong,.rotation small{display:block}
+.rotation small{color:var(--muted);margin-top:5px}
+.detail{
+ background:#f5f8fd;border:1px solid var(--line);
+ border-radius:13px;padding:17px;margin-top:12px
 }
-.rotation.active {background:#eeeaff;border-color:var(--purple)}
-.rotation strong,.rotation small {display:block}
-.rotation small {color:var(--muted);margin-top:5px}
-.detail {
-  background:#f5f8fd;
-  border:1px solid var(--line);
-  border-radius:13px;
-  padding:17px;
-  margin-top:12px;
+.detail h3{margin:13px 0 5px}
+.detail h3:first-child{margin-top:0}
+.detail p,.detail li{font-size:13px}
+.detail ul{padding-left:20px}
+
+/* CROP CARDS */
+.crop{
+ display:grid;grid-template-columns:110px minmax(0,1fr);
+ gap:14px;padding:13px;margin-top:11px;
+ border:1px solid var(--line);border-radius:14px
 }
-.detail h3 {margin:13px 0 5px}
-.detail h3:first-child {margin-top:0}
-.detail p,.detail li {font-size:13px}
-.detail ul {padding-left:20px}
+.crop.active{
+ background:#f0f6ff;border-color:var(--blue)
+}
+.cropPhoto{
+ width:110px;height:115px;object-fit:cover;
+ border-radius:10px;background:#e7eff8
+}
+.crop strong{display:block;font-size:17px}
+.crop small{display:block;color:var(--muted)}
+.crop button{padding:8px 12px;margin-top:9px;font-size:12px}
+
+/* EXPANDABLE EXPLANATION */
+.cropExplanation{
+ grid-column:1/-1;
+ border-top:1px solid #cbdcf1;
+ margin-top:4px;padding-top:18px;
+ animation:expandIn .25s ease
+}
+@keyframes expandIn{
+ from{opacity:0;transform:translateY(-6px)}
+ to{opacity:1;transform:translateY(0)}
+}
+.explainTitle{
+ font-size:19px;font-weight:800;margin-bottom:9px
+}
+.evidenceGrid{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:10px;margin:13px 0
+}
+.evidenceBox{
+ padding:13px;background:white;
+ border:1px solid var(--line);border-radius:12px
+}
+.evidenceBox small{
+ display:block;color:var(--muted);font-size:12px
+}
+.evidenceBox strong{font-size:17px}
+.explainSection{margin-top:15px}
+.explainSection h3{margin-bottom:6px}
+.explainSection p{font-size:13px;color:var(--muted)}
+.evidenceTable{
+ width:100%;border-collapse:collapse;
+ font-size:12px;margin-top:10px
+}
+.evidenceTable th,.evidenceTable td{
+ padding:9px;border-bottom:1px solid var(--line);
+ text-align:left
+}
+.evidenceTable th{background:#e9f1fb}
+.tableScroll{overflow-x:auto}
+.explainActions{
+ display:flex;gap:9px;flex-wrap:wrap;margin-top:15px
+}
+.secondaryButton{
+ background:#e7effa;color:var(--navy)
+}
+.signal{
+ display:inline-block;padding:3px 9px;
+ border-radius:20px;font-size:11px;font-weight:700
+}
+.signal.good{background:#def5ed;color:#126a50}
+.signal.review{background:#fff0d7;color:#8a5b13}
+.signal.missing{background:#edf0f5;color:#526a87}
 
 /* NASA DASHBOARD */
-.metrics {
-  display:grid;
-  grid-template-columns:repeat(4,minmax(0,1fr));
-  gap:12px;
-  margin:20px 0;
+.metrics{
+ display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+ gap:12px;margin:20px 0
 }
-.metric {
-  background:#f2f6fc;
-  border:1px solid #e0e9f5;
-  border-radius:13px;
-  padding:16px;
+.metric{
+ background:#f2f6fc;border:1px solid #e0e9f5;
+ border-radius:13px;padding:16px
 }
-.metric small {display:block;color:var(--muted)}
-.metric strong {
-  display:block;
-  font-size:23px;
-  margin-top:7px;
-  overflow-wrap:anywhere;
+.metric small{display:block;color:var(--muted)}
+.metric strong{
+ display:block;font-size:23px;margin-top:7px;
+ overflow-wrap:anywhere
 }
-.chartgrid {
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:15px;
+.chartgrid{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:15px
 }
-.chartcard {
-  border:1px solid var(--line);
-  border-radius:14px;
-  padding:15px;
-  min-width:0;
+.chartcard{
+ border:1px solid var(--line);border-radius:14px;
+ padding:15px;min-width:0
 }
-.chartcard h3 {margin-bottom:12px}
-.chartbox {
-  height:235px;
-  position:relative;
-  background:#f5f8fd;
-  border-radius:12px;
-  padding:10px;
+.chartcard h3{margin-bottom:12px}
+.chartbox{
+ height:235px;position:relative;
+ background:#f5f8fd;border-radius:12px;padding:10px
 }
-.chartbox canvas {width:100%!important;height:100%!important}
+.chartbox canvas{width:100%!important;height:100%!important}
 
-/* CHECKLIST */
-.actions {
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:13px;
-  margin-top:15px;
+/* ACTIONS */
+.actions{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:13px;margin-top:15px
 }
-.action {
-  padding:18px;
-  background:#f5f8fd;
-  border:1px solid var(--line);
-  border-left:5px solid var(--teal);
-  border-radius:13px;
-  min-height:125px;
+.action{
+ padding:18px;background:#f5f8fd;
+ border:1px solid var(--line);
+ border-left:5px solid var(--teal);
+ border-radius:13px;min-height:125px
 }
-.action strong {display:block}
-.action p {font-size:13px;color:var(--muted);margin-top:7px}
+.action strong{display:block}
+.action p{font-size:13px;color:var(--muted);margin-top:7px}
 
-/* CHAT */
-#bumiChat {
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-  max-height:480px;
-  min-height:160px;
-  overflow:auto;
-  padding:18px;
-  margin:16px 0;
-  background:#f4f7fc;
-  border:1px solid var(--line);
-  border-radius:15px;
+/* GEMINI CHAT */
+#bumiChat{
+ display:flex;flex-direction:column;gap:12px;
+ max-height:480px;min-height:160px;overflow:auto;
+ padding:18px;margin:16px 0;background:#f4f7fc;
+ border:1px solid var(--line);border-radius:15px
 }
-.bumiBubble {
-  max-width:85%;
-  padding:13px 16px;
-  border-radius:14px;
-  white-space:pre-wrap;
-  overflow-wrap:anywhere;
-  line-height:1.65;
+.bumiBubble{
+ max-width:85%;padding:13px 16px;border-radius:14px;
+ white-space:pre-wrap;overflow-wrap:anywhere;
+ line-height:1.65
 }
-.bumiBubble.user {
-  align-self:flex-end;
-  background:#dcecff;
+.bumiBubble.user{
+ align-self:flex-end;background:#dcecff
 }
-.bumiBubble.assistant {
-  align-self:flex-start;
-  background:white;
-  border:1px solid var(--line);
+.bumiBubble.assistant{
+ align-self:flex-start;background:white;
+ border:1px solid var(--line)
 }
-.bumiBubble.pending {
-  align-self:flex-start;
-  background:#e8effa;
-  color:var(--muted);
+.bumiBubble.pending{
+ align-self:flex-start;background:#e8effa;color:var(--muted)
 }
-.bumiCompose {display:flex;gap:11px;align-items:flex-end}
-.bumiCompose textarea {flex:1;min-width:0}
-.bumiFooter {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:12px;
-  margin-top:12px;
-  color:var(--muted);
-  font-size:12px;
+.bumiCompose{display:flex;gap:11px;align-items:flex-end}
+.bumiCompose textarea{flex:1;min-width:0}
+.bumiFooter{
+ display:flex;justify-content:space-between;
+ align-items:center;gap:12px;margin-top:12px;
+ color:var(--muted);font-size:12px
 }
-#bumiClear {background:#e7effa;color:var(--navy)}
-.bumiRetry {margin-top:10px}
+#bumiClear{background:#e7effa;color:var(--navy)}
+.bumiRetry{margin-top:10px}
 
-/* PHOTO GALLERY */
-.gallery {
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:15px;
+/* PHOTOGRAPHY */
+.gallery{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:15px
 }
-.photoCard {
-  border:1px solid var(--line);
-  border-radius:15px;
-  overflow:hidden;
-  background:white;
+.photoCard{
+ border:1px solid var(--line);border-radius:15px;
+ overflow:hidden;background:white
 }
-.photoCard img {
-  width:100%;
-  height:220px;
-  object-fit:cover;
-  display:block;
-  background:#e8eff7;
+.photoCard img{
+ width:100%;height:220px;object-fit:cover;
+ display:block;background:#e8eff7
 }
-.photoCard .photoInfo {padding:14px}
-.photoCard p {font-size:12px;color:var(--muted)}
-.photoCard a {font-size:12px}
+.photoInfo{padding:14px}
+.photoInfo p{font-size:12px;color:var(--muted)}
 
 /* MISC */
-details {
-  border:1px solid var(--line);
-  border-radius:12px;
-  padding:13px;
-  margin-top:15px;
+details{
+ border:1px solid var(--line);border-radius:12px;
+ padding:13px;margin-top:15px
 }
-summary {cursor:pointer;font-weight:700}
-footer {
-  text-align:center;
-  padding:28px 0;
-  color:var(--muted);
-  font-size:12px;
+summary{cursor:pointer;font-weight:700}
+footer{
+ text-align:center;padding:28px 0;
+ color:var(--muted);font-size:12px
 }
-@media(max-width:1100px) {
-  .chartgrid {grid-template-columns:repeat(2,1fr)}
-  .metrics {grid-template-columns:repeat(2,1fr)}
+@media(max-width:1100px){
+ .chartgrid{grid-template-columns:repeat(2,1fr)}
+ .metrics{grid-template-columns:repeat(2,1fr)}
 }
-@media(max-width:850px) {
-  .two-col,.three-col,.gallery {grid-template-columns:1fr}
-  .hero {padding:25px;min-height:270px}
-  .chartgrid {grid-template-columns:1fr}
+@media(max-width:850px){
+ .two-col,.gallery{grid-template-columns:1fr}
+ .hero{padding:25px;min-height:270px}
+ .chartgrid{grid-template-columns:1fr}
 }
-@media(max-width:600px) {
-  .app {padding:10px}
-  .panel {padding:15px}
-  .actions {grid-template-columns:1fr}
-  .crop {grid-template-columns:85px minmax(0,1fr)}
-  .cropPhoto {width:85px;height:105px}
-  .bumiCompose {flex-direction:column;align-items:stretch}
-  .bumiBubble {max-width:97%}
-  #map,#farm3d {height:320px}
+@media(max-width:600px){
+ .app{padding:10px}
+ .panel{padding:15px}
+ .actions,.evidenceGrid{grid-template-columns:1fr}
+ .crop{grid-template-columns:85px minmax(0,1fr)}
+ .cropPhoto{width:85px;height:105px}
+ .bumiCompose{flex-direction:column;align-items:stretch}
+ .bumiBubble{max-width:97%}
+ #map,#farm3d{height:320px}
 }
 </style>
 </head>
@@ -476,7 +403,9 @@ footer {
    plan healthier growing cycles using environmental
    evidence from your location.
   </p>
-  <div class="heroNote">EARTH DATA · FARMING DECISIONS · SOIL RESILIENCE</div>
+  <div class="heroNote">
+   EARTH DATA · FARMING DECISIONS · SOIL RESILIENCE
+  </div>
  </div>
 </section>
 
@@ -513,7 +442,8 @@ footer {
   <button id="analyzeBtn">Analyze My Farm</button>
  </div>
 
- <div id="priorityExplanation" class="priorityExplanation"></div>
+ <div id="priorityExplanation"
+  class="priorityExplanation"></div>
 
  <p id="locationLabel" class="status">
   Selected: 1.4600° N, 110.4900° E
@@ -545,9 +475,7 @@ footer {
  </div>
 
  <div id="rotationControls" class="hidden">
-  <p class="sub" style="margin-top:12px">
-   Select a crop in the rotation:
-  </p>
+  <p class="sub">Select a crop in the rotation:</p>
   <div id="timeline" class="timeline"></div>
   <button id="resetCamera">Reset 3D View</button>
  </div>
@@ -635,45 +563,38 @@ footer {
 </section>
 
 <section class="panel section">
- <div class="head">
-  <div>
-   <div class="eyebrow">FARMING LANDSCAPES</div>
-   <h2>Explore agricultural landscapes</h2>
-   <p class="sub">
-    Real agricultural photography for visual context.
-    Satellite imagery above shows your selected map location.
-   </p>
-  </div>
- </div>
+ <div class="eyebrow">FARMING LANDSCAPES</div>
+ <h2>Explore agricultural landscapes</h2>
+ <p class="sub">
+  Real agricultural photographs for visual context.
+ </p>
 
- <div class="gallery">
+ <div class="gallery" style="margin-top:16px">
   <div class="photoCard">
    <img
     src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1000&q=85"
-    alt="Agricultural fields">
+    alt="Agricultural landscape" loading="lazy">
    <div class="photoInfo">
     <strong>Growing landscapes</strong>
     <p>Real agricultural landscape photography.</p>
    </div>
   </div>
-
   <div class="photoCard">
    <img
     src="https://images.unsplash.com/photo-1472396961693-142e6e269027?auto=format&fit=crop&w=1000&q=85"
-    alt="Green rural landscape">
+    alt="Natural landscape" loading="lazy">
    <div class="photoInfo">
     <strong>Land and environment</strong>
-    <p>Landscape photography illustrating the natural environment.</p>
+    <p>Natural landscape photography.</p>
    </div>
   </div>
-
   <div class="photoCard">
    <img
     src="https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=1000&q=85"
-    alt="Agricultural crops">
+    alt="Agricultural crops" loading="lazy">
    <div class="photoInfo">
     <strong>Crop diversity</strong>
-    <p>Real crop photography for farming inspiration.</p>
+    <p>Real crop photography.</p>
    </div>
   </div>
  </div>
@@ -685,29 +606,26 @@ footer {
  <div class="eyebrow">CROP RECOMMENDATIONS</div>
  <h2>Find crops that fit your land</h2>
  <p class="sub">
-  Explore climate compatibility, candidate planting windows
+  Explore climate compatibility, planting windows
   and supporting environmental evidence.
  </p>
 
  <div id="cropList">
   <p class="status">Your crop shortlist will appear here.</p>
  </div>
- <div id="cropDetails"></div>
 </section>
 
-<div class="stack">
- <section class="panel">
-  <div class="eyebrow">CROP ROTATION</div>
-  <h2>Build your crop rotation</h2>
-  <p class="sub">
-   Compare your baseline with alternative crop sequences.
-  </p>
-  <div id="rotationList">
-   <p class="status">Rotation options will appear here.</p>
-  </div>
-  <div id="strategyDetails"></div>
- </section>
-</div>
+<section class="panel">
+ <div class="eyebrow">CROP ROTATION</div>
+ <h2>Build your crop rotation</h2>
+ <p class="sub">
+  Compare your baseline with alternative crop sequences.
+ </p>
+ <div id="rotationList">
+  <p class="status">Rotation options will appear here.</p>
+ </div>
+ <div id="strategyDetails"></div>
+</section>
 
 </div>
 
@@ -743,135 +661,126 @@ footer {
 </section>
 
 <footer>
- BUMI SHIFT · Environmental data: NASA POWER<br>
- Map imagery: Esri / OpenStreetMap contributors
+ BUMI SHIFT · Environmental data: NASA POWER
 </footer>
-
 </div>
 
 <script>
-window.addEventListener("DOMContentLoaded", () => {
+window.addEventListener("DOMContentLoaded",()=>{
 "use strict";
 
-const $ = id => document.getElementById(id);
-const months = [
+const $=id=>document.getElementById(id);
+const months=[
  "Jan","Feb","Mar","Apr","May","Jun",
  "Jul","Aug","Sep","Oct","Nov","Dec"
 ];
 
-let coords = {latitude:1.46,longitude:110.49};
-let assessment = null;
-let selectedStrategy = null;
-let selectedCrop = null;
-let version = 0;
+let coords={latitude:1.46,longitude:110.49};
+let assessment=null;
+let climateData=null;
+let selectedStrategy=null;
+let selectedCrop=null;
+let version=0;
+const chartInstances={};
 
-const chartInstances = {};
-
-window.BUMIContext = {
+window.BUMIContext={
  ...coords,
  selected_crop:null,
  selected_rotation:null
 };
 
-const put = (id,value) => $(id).textContent = value;
+const put=(id,value)=>$(id).textContent=value;
 
-function fmt(value,suffix="") {
- return value == null || !Number.isFinite(Number(value))
-  ? "—"
-  : Number(value).toLocaleString("en-MY",{
-      maximumFractionDigits:1
-    }) + suffix;
+function fmt(value,suffix=""){
+ return value==null||!Number.isFinite(Number(value))
+  ?"—"
+  :Number(value).toLocaleString("en-MY",{
+    maximumFractionDigits:1
+   })+suffix;
 }
 
-function el(tag,cls="",value) {
- const e = document.createElement(tag);
- if(cls) e.className = cls;
- if(value !== undefined) e.textContent = value;
+function el(tag,cls="",value){
+ const e=document.createElement(tag);
+ if(cls)e.className=cls;
+ if(value!==undefined)e.textContent=value;
  return e;
 }
 
-function paragraph(parent,text) {
+function paragraph(parent,text){
  parent.append(el("p","",text));
 }
 
-function bullets(parent,items) {
- const ul = el("ul");
- (items || []).forEach(item => {
-  ul.append(el("li","",String(item)));
- });
+function bullets(parent,items){
+ const ul=el("ul");
+ (items||[]).forEach(item=>
+  ul.append(el("li","",String(item)))
+ );
  parent.append(ul);
 }
 
-function clear(id) {
- $(id).replaceChildren();
+function clear(id){$(id).replaceChildren()}
+
+function isSarawak(lat,lon){
+ return lat>=0.5&&lat<=5.1&&lon>=109.5&&lon<=115.5;
 }
 
-/* FARM PRIORITIES */
+/* PRIORITY EXPLANATION */
 
-const priorityInfo = {
+const priorityInfo={
  soil:{
   title:"Your goal: Healthier soil",
-  text:"Compare crop-family diversity, ground-cover opportunities and climate compatibility."
+  text:"Compare crop-family diversity, soil-cover opportunities and climate compatibility."
  },
  water:{
   title:"Your goal: Smarter water management",
-  text:"Explore rainfall compatibility and potential drainage or water-management concerns."
+  text:"Explore rainfall compatibility and possible drainage or water-management concerns."
  },
  resilience:{
   title:"Your goal: Climate resilience",
-  text:"Prioritize historical climate compatibility when comparing alternative rotations."
+  text:"Give greater weight to historical climate compatibility when comparing rotations."
  },
  income:{
   title:"Your goal: More income opportunities",
-  text:"Explore alternative crops. Market prices, costs and profits are not yet quantitatively assessed."
+  text:"Explore alternative crops. Prices, costs and profits are not yet quantitatively assessed."
  }
 };
 
-function updatePriority() {
- const info = priorityInfo[$("priority").value];
- const root = $("priorityExplanation");
+function updatePriority(){
+ const info=priorityInfo[$("priority").value];
+ const root=$("priorityExplanation");
  root.replaceChildren();
  root.append(
   el("strong","",info.title),
   el("p","",info.text)
  );
 }
-
 $("priority").addEventListener("change",updatePriority);
 updatePriority();
 
-function isSarawak(lat,lon) {
- return lat >= 0.5 && lat <= 5.1
-  && lon >= 109.5 && lon <= 115.5;
-}
-
 /* MAP */
 
-let map = null;
-let marker = null;
-let street = null;
-let satellite = null;
+let map=null,marker=null,street=null,satellite=null;
 
-if(window.L) {
- map = L.map("map").setView([1.46,110.49],11);
+if(window.L){
+ map=L.map("map").setView([1.46,110.49],11);
 
- street = L.tileLayer(
+ street=L.tileLayer(
   "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-  {maxZoom:19,attribution:"© OpenStreetMap contributors"}
+  {maxZoom:19,attribution:"© OpenStreetMap"}
  );
 
- satellite = L.tileLayer(
+ satellite=L.tileLayer(
   "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-  {maxZoom:19,attribution:"Imagery © Esri and providers"}
+  {maxZoom:19,attribution:"Imagery © Esri"}
  );
 
  satellite.addTo(map);
- marker = L.marker([1.46,110.49]).addTo(map);
+ marker=L.marker([1.46,110.49]).addTo(map);
 
- map.on("click",e => choose(e.latlng.lat,e.latlng.lng));
+ map.on("click",e=>choose(e.latlng.lat,e.latlng.lng));
 }
 
-function mapMode(mode) {
+function mapMode(mode){
  $("map").classList.remove("hidden");
  $("farm3d").classList.add("hidden");
  $("rotationControls").classList.add("hidden");
@@ -880,15 +789,15 @@ function mapMode(mode) {
  $("streetBtn").classList.toggle("active",mode==="street");
  $("farmBtn").classList.remove("active");
 
- if(map) {
+ if(map){
   map.removeLayer(street);
   map.removeLayer(satellite);
-  (mode==="satellite" ? satellite : street).addTo(map);
-  setTimeout(() => map.invalidateSize(),100);
+  (mode==="satellite"?satellite:street).addTo(map);
+  setTimeout(()=>map.invalidateSize(),100);
  }
 }
 
-function farmMode() {
+function farmMode(){
  $("map").classList.add("hidden");
  $("farm3d").classList.remove("hidden");
  $("rotationControls").classList.remove("hidden");
@@ -900,43 +809,42 @@ function farmMode() {
  window.BUMIFarm3D?.resize();
 }
 
-$("satBtn").onclick = () => mapMode("satellite");
-$("streetBtn").onclick = () => mapMode("street");
-$("farmBtn").onclick = farmMode;
-$("resetCamera").onclick =
- () => window.BUMIFarm3D?.resetCamera();
+$("satBtn").onclick=()=>mapMode("satellite");
+$("streetBtn").onclick=()=>mapMode("street");
+$("farmBtn").onclick=farmMode;
+$("resetCamera").onclick=()=>
+ window.BUMIFarm3D?.resetCamera();
 
-function choose(lat,lon) {
- if(!isSarawak(lat,lon)) {
+function choose(lat,lon){
+ if(!isSarawak(lat,lon)){
   put("status","Please select a location within Sarawak.");
   return;
  }
 
- coords = {latitude:lat,longitude:lon};
-
+ coords={latitude:lat,longitude:lon};
  Object.assign(window.BUMIContext,{
-  latitude:lat,
-  longitude:lon,
-  selected_crop:null,
-  selected_rotation:null
+  latitude:lat,longitude:lon,
+  selected_crop:null,selected_rotation:null
  });
 
  marker?.setLatLng([lat,lon]);
  map?.setView([lat,lon],12);
 
  version++;
- assessment = null;
- selectedStrategy = null;
- selectedCrop = null;
+ assessment=null;
+ climateData=null;
+ selectedStrategy=null;
+ selectedCrop=null;
 
  [
-  "cropList","cropDetails","rotationList",
-  "strategyDetails","shiftList","activityList",
-  "metrics"
+  "cropList","rotationList","strategyDetails",
+  "shiftList","activityList","metrics"
  ].forEach(clear);
 
- Object.values(chartInstances).forEach(c => c.destroy());
- Object.keys(chartInstances).forEach(k => delete chartInstances[k]);
+ Object.values(chartInstances).forEach(c=>c.destroy());
+ Object.keys(chartInstances).forEach(k=>
+  delete chartInstances[k]
+ );
 
  put("locationLabel",
   `Selected: ${lat.toFixed(4)}° N, ${lon.toFixed(4)}° E`
@@ -944,48 +852,45 @@ function choose(lat,lon) {
  put("status","Location updated. Analyze to refresh results.");
 }
 
-$("searchBtn").onclick = async () => {
- const query = $("place").value.trim();
- if(!query) return;
+$("searchBtn").onclick=async()=>{
+ const query=$("place").value.trim();
+ if(!query)return;
 
- $("searchBtn").disabled = true;
- put("status","Finding your location...");
+ $("searchBtn").disabled=true;
 
- try {
-  const url = "https://nominatim.openstreetmap.org/search?"
-   + new URLSearchParams({
+ try{
+  const url="https://nominatim.openstreetmap.org/search?"
+   +new URLSearchParams({
     q:query+", Sarawak, Malaysia",
-    format:"json",
-    limit:5
+    format:"json",limit:5
    });
 
-  const r = await fetch(url);
-  if(!r.ok) throw Error("Location search failed");
+  const response=await fetch(url);
+  if(!response.ok)throw Error("Location search failed");
 
-  const places = await r.json();
-  const match = places.find(p =>
+  const places=await response.json();
+  const match=places.find(p=>
    isSarawak(Number(p.lat),Number(p.lon))
   );
 
-  if(!match) throw Error("No matching Sarawak location found");
-
+  if(!match)throw Error("Location not found");
   choose(Number(match.lat),Number(match.lon));
- } catch(e) {
+ }catch(e){
   put("status","Please try another Sarawak location.");
- } finally {
-  $("searchBtn").disabled = false;
+ }finally{
+  $("searchBtn").disabled=false;
  }
 };
 
 /* API */
 
-async function api(path,params) {
- const response = await fetch(
+async function api(path,params){
+ const response=await fetch(
   path+"?"+new URLSearchParams(params)
  );
- const data = await response.json().catch(() => ({}));
+ const data=await response.json().catch(()=>({}));
 
- if(!response.ok) {
+ if(!response.ok){
   throw Error("Request could not be completed");
  }
  return data;
@@ -993,11 +898,11 @@ async function api(path,params) {
 
 /* NASA CHARTS */
 
-function chart(id,type,labels,datasets,yTitle) {
+function chart(id,type,labels,datasets,yTitle){
  chartInstances[id]?.destroy();
- if(!window.Chart) return;
+ if(!window.Chart)return;
 
- chartInstances[id] = new Chart($(id),{
+ chartInstances[id]=new Chart($(id),{
   type,
   data:{labels,datasets},
   options:{
@@ -1015,9 +920,7 @@ function chart(id,type,labels,datasets,yTitle) {
     y:{
      ticks:{color:"#526a87"},
      title:{
-      display:true,
-      text:yTitle,
-      color:"#526a87"
+      display:true,text:yTitle,color:"#526a87"
      }
     }
    }
@@ -1025,10 +928,9 @@ function chart(id,type,labels,datasets,yTitle) {
  });
 }
 
-function dataset(label,data,color,type="line") {
- return {
-  label,
-  data,
+function dataset(label,data,color,type="line"){
+ return{
+  label,data,
   borderColor:color,
   backgroundColor:color,
   borderWidth:2,
@@ -1040,22 +942,23 @@ function dataset(label,data,color,type="line") {
  };
 }
 
-function renderNASA(h) {
- const s = h.summary || {};
- const monthly = h.monthly_climatology || h.monthly || [];
- const annual = h.annual || [];
+function renderNASA(h){
+ climateData=h;
+ const s=h.summary||{};
+ const monthly=h.monthly_climatology||h.monthly||[];
+ const annual=h.annual||[];
 
- const ordered = months.map((_,i) =>
-  monthly.find(r => Number(r.month)===i+1) || {}
+ const ordered=months.map((_,i)=>
+  monthly.find(r=>Number(r.month)===i+1)||{}
  );
 
- const vals = key => ordered.map(r => r[key] ?? null);
- const years = annual.map(r => String(r.year));
+ const vals=key=>ordered.map(r=>r[key]??null);
+ const years=annual.map(r=>String(r.year));
 
- const root = $("metrics");
+ const root=$("metrics");
  root.replaceChildren();
 
- const indicators = [
+ const indicators=[
   ["Annual rainfall",s.mean_annual_rainfall_mm," mm"],
   ["Mean temperature",s.mean_temperature_c??s.mean_annual_temperature_c," °C"],
   ["Maximum temperature",s.mean_maximum_temperature_c," °C"],
@@ -1066,10 +969,9 @@ function renderNASA(h) {
   ["Atmospheric pressure",s.mean_pressure_kpa," kPa"]
  ];
 
- indicators.forEach(([name,value,unit]) => {
-  if(value==null || !Number.isFinite(Number(value))) return;
-
-  const card = el("div","metric");
+ indicators.forEach(([name,value,unit])=>{
+  if(value==null||!Number.isFinite(Number(value)))return;
+  const card=el("div","metric");
   card.append(
    el("small","",name),
    el("strong","",fmt(value,unit))
@@ -1108,13 +1010,13 @@ function renderNASA(h) {
 
  chart("annualRainChart","bar",years,[
   dataset("Annual rainfall",
-   annual.map(r => r.rainfall_mm ?? null),
+   annual.map(r=>r.rainfall_mm??null),
    "#216ad6","bar")
  ],"mm");
 
  chart("annualTempChart","line",years,[
   dataset("Annual temperature",
-   annual.map(r => r.temperature_c??r.mean_temperature_c??null),
+   annual.map(r=>r.temperature_c??r.mean_temperature_c??null),
    "#e97c6e")
  ],"°C");
 
@@ -1125,194 +1027,393 @@ function renderNASA(h) {
 
 /* CROP PHOTOS */
 
-const cropPages = {
- rice:"Rice",
- maize:"Maize",
- mung_bean:"Mung_bean",
- groundnut:"Peanut",
- soybean:"Soybean",
- sweet_potato:"Sweet_potato",
- cassava:"Cassava",
- pineapple:"Pineapple",
- banana:"Banana",
- coconut:"Coconut",
- durian:"Durian"
+const cropPages={
+ rice:"Rice",maize:"Maize",mung_bean:"Mung_bean",
+ groundnut:"Peanut",soybean:"Soybean",
+ sweet_potato:"Sweet_potato",cassava:"Cassava",
+ pineapple:"Pineapple",banana:"Banana",
+ coconut:"Coconut",durian:"Durian"
 };
 
-const photoCache = {};
+const photoCache={};
 
-async function cropPhoto(id) {
- if(id in photoCache) return photoCache[id];
+async function cropPhoto(id){
+ if(id in photoCache)return photoCache[id];
 
- try {
-  const url = "https://en.wikipedia.org/w/api.php?"
-   + new URLSearchParams({
-    action:"query",
-    titles:cropPages[id],
-    prop:"pageimages",
-    pithumbsize:"480",
-    format:"json",
-    origin:"*"
+ try{
+  const url="https://en.wikipedia.org/w/api.php?"
+   +new URLSearchParams({
+    action:"query",titles:cropPages[id],
+    prop:"pageimages",pithumbsize:"480",
+    format:"json",origin:"*"
    });
 
-  const r = await fetch(url);
-  if(!r.ok) throw Error("Photo unavailable");
+  const response=await fetch(url);
+  if(!response.ok)throw Error("Photo unavailable");
 
-  const data = await r.json();
-  const page = Object.values(data.query?.pages || {})[0];
-  photoCache[id] = page?.thumbnail?.source || null;
- } catch(e) {
-  photoCache[id] = null;
+  const data=await response.json();
+  const page=Object.values(data.query?.pages||{})[0];
+  photoCache[id]=page?.thumbnail?.source||null;
+ }catch(e){
+  photoCache[id]=null;
  }
-
  return photoCache[id];
 }
 
 /* 3D FARM */
 
-function showCrop(id,name,period) {
- selectedCrop = id;
- window.BUMIContext.selected_crop = id;
-
+function showCrop(id,name,period){
+ selectedCrop=id;
+ window.BUMIContext.selected_crop=id;
  put("fieldCrop",name);
  put("fieldPeriod",period);
  window.BUMIFarm3D?.showCrop(id);
 }
 
-function showStage(index) {
- if(!selectedStrategy) return;
-
- const s = selectedStrategy.stages?.[index];
- if(!s) return;
+function showStage(index){
+ if(!selectedStrategy)return;
+ const s=selectedStrategy.stages?.[index];
+ if(!s)return;
 
  showCrop(
-  s.crop_id,
-  s.crop,
+  s.crop_id,s.crop,
   `${s.start_month}–${s.end_month} · ${s.duration_months} months`
  );
 
- document.querySelectorAll("[data-stage]").forEach(b => {
-  b.classList.toggle("active",Number(b.dataset.stage)===index);
- });
+ document.querySelectorAll("[data-stage]").forEach(b=>
+  b.classList.toggle(
+   "active",Number(b.dataset.stage)===index
+  )
+ );
 }
 
-function renderTimeline(strategy) {
- const root = $("timeline");
+function renderTimeline(strategy){
+ const root=$("timeline");
  root.replaceChildren();
 
- const stages = strategy.stages ||
-  strategy.crops.map((name,i) => ({
-   crop:name,
-   crop_id:strategy.crop_ids[i],
+ const stages=strategy.stages||
+  strategy.crops.map((name,i)=>({
+   crop:name,crop_id:strategy.crop_ids[i],
    start_month:"Stage "+(i+1),
-   end_month:"",
-   duration_months:""
+   end_month:"",duration_months:""
   }));
 
- selectedStrategy = {...strategy,stages};
+ selectedStrategy={...strategy,stages};
 
- stages.forEach((s,i) => {
-  const button = el("button","",`${i+1}. ${s.crop}`);
-  button.dataset.stage = i;
-  button.onclick = () => showStage(i);
-  root.append(button);
+ stages.forEach((s,i)=>{
+  const b=el("button","",`${i+1}. ${s.crop}`);
+  b.dataset.stage=i;
+  b.onclick=()=>showStage(i);
+  root.append(b);
  });
 
  showStage(0);
 }
 
-/* CROP RECOMMENDATIONS */
+/* CROP-SPECIFIC MANAGEMENT */
 
-function renderCrops(crops) {
- const root = $("cropList");
+const cropAdvice={
+ rice:{
+  management:"Review water control, paddy bunds and drainage. Suitability differs between irrigated and rainfed rice systems.",
+  risks:"Prolonged inundation, flooding and inadequate water control can affect establishment and harvest.",
+  shift:"If shifting from rice to an upland crop, assess drainage, soil preparation and the feasibility of changing field water management."
+ },
+ maize:{
+  management:"Review drainage, nutrient supply, planting density and moisture availability during flowering.",
+  risks:"Waterlogging, excessive rainfall and nutrient losses can reduce establishment and crop performance.",
+  shift:"Consider a different crop family in the next rotation stage to diversify management and potential pest exposure."
+ },
+ mung_bean:{
+  management:"Check drainage, seed quality, nodulation and residue management after harvest.",
+  risks:"Excessive rainfall and saturated soils may affect establishment and disease pressure.",
+  shift:"A legume phase may contribute to nutrient cycling if nodulation and residue management are appropriate."
+ },
+ groundnut:{
+  management:"Check soil drainage, loose soil structure, calcium availability and pod development conditions.",
+  risks:"Waterlogging and unsuitable soil structure may affect pegging and pod development.",
+  shift:"Groundnut introduces a legume phase but requires suitable soil and harvesting conditions."
+ },
+ soybean:{
+  management:"Review drainage, inoculation or effective rhizobia, nutrient management and planting density.",
+  risks:"Excessive moisture, disease pressure and unsuitable photoperiod responses may limit performance.",
+  shift:"Soybean can diversify the rotation, but nitrogen benefits depend on successful nodulation and management."
+ },
+ sweet_potato:{
+  management:"Consider well-drained raised beds, vine establishment and management of exposed soil.",
+  risks:"Waterlogging can damage storage roots; pest pressure and soil preparation need local assessment.",
+  shift:"Moving from paddy rice to sweet potato may require drainage changes and raised-bed preparation."
+ },
+ cassava:{
+  management:"Review field drainage, planting-material quality, soil conservation and long growing duration.",
+  risks:"Extended field occupation, erosion on exposed slopes and root diseases require attention.",
+  shift:"Cassava is a longer-duration option rather than a direct substitute for a short seasonal rotation."
+ },
+ pineapple:{
+  management:"Review drainage, planting density, mulch, soil acidity and long establishment periods.",
+  risks:"Waterlogging, disease and long crop duration may complicate short rotation planning.",
+  shift:"Pineapple requires a longer-term planting plan and may not fit an annual rotation schedule."
+ },
+ banana:{
+  management:"Check drainage, wind exposure, planting material, disease management and nutrient supply.",
+  risks:"Waterlogging, strong winds and diseases such as Fusarium wilt require local checks.",
+  shift:"Banana is a longer-term planting decision, not simply the next short rotation stage."
+ },
+ coconut:{
+  management:"Assess soil depth, drainage, spacing, wind exposure and long-term maintenance.",
+  risks:"A perennial plantation requires long-term land commitment and site-specific suitability assessment.",
+  shift:"Coconut represents a land-use transition rather than a short annual crop rotation."
+ },
+ durian:{
+  management:"Check deep drainage, soil suitability, planting material, slope conditions and orchard management.",
+  risks:"Waterlogging and root diseases can be serious concerns; establishment and returns take years.",
+  shift:"Durian is a long-term orchard investment rather than a short seasonal rotation crop."
+ }
+};
+
+/* EXPLORE WHY */
+
+function renderCrops(crops){
+ const root=$("cropList");
  root.replaceChildren();
 
- crops.slice(0,11).forEach((crop,index) => {
-  const card = el("div","crop");
-  const img = el("img","cropPhoto");
+ let opened=null;
 
-  img.alt = crop.name;
-  img.loading = "lazy";
-  img.onerror = () => img.style.display = "none";
+ crops.slice(0,11).forEach((crop,index)=>{
+  const card=el("div","crop");
+  const img=el("img","cropPhoto");
+  img.alt=crop.name;
+  img.loading="lazy";
+  img.onerror=()=>img.style.display="none";
 
-  cropPhoto(crop.id).then(src => {
-   if(src) img.src = src;
-   else img.style.display = "none";
+  cropPhoto(crop.id).then(src=>{
+   if(src)img.src=src;
+   else img.style.display="none";
   });
 
-  const info = el("div");
+  const info=el("div");
   info.append(
    el("strong","",`${index+1}. ${crop.name}`),
    el("small","",
     `Climate compatibility: ${fmt(crop.climate_score," / 100")}`),
    el("small","",
     crop.suggested_start_month
-     ? `Candidate planting month: ${months[crop.suggested_start_month-1]}`
-     : "Planting window not determined")
+     ?`Candidate planting month: ${months[crop.suggested_start_month-1]}`
+     :"Planting window not determined")
   );
 
-  const button = el("button","","Explore Why");
+  const button=el("button","","Explore Why");
 
-  button.onclick = () => {
-   selectedCrop = crop.id;
-   window.BUMIContext.selected_crop = crop.id;
+  button.onclick=()=>{
+   if(opened===card){
+    card.querySelector(".cropExplanation")?.remove();
+    card.classList.remove("active");
+    button.textContent="Explore Why";
+    opened=null;
+    return;
+   }
 
-   document.querySelectorAll(".crop").forEach(x =>
-    x.classList.remove("active")
-   );
+   document.querySelectorAll(".cropExplanation").forEach(x=>x.remove());
+   document.querySelectorAll(".crop").forEach(x=>x.classList.remove("active"));
+   document.querySelectorAll(".crop button").forEach(x=>{
+    if(x.textContent==="Hide Explanation")
+     x.textContent="Explore Why";
+   });
+
+   opened=card;
    card.classList.add("active");
+   button.textContent="Hide Explanation";
 
-   const detail = $("cropDetails");
-   detail.replaceChildren();
+   selectedCrop=crop.id;
+   window.BUMIContext.selected_crop=crop.id;
 
-   const panel = el("div","detail");
-   panel.append(
-    el("h3","",crop.name+" — Environmental Assessment")
-   );
+   const panel=el("div","cropExplanation");
+   panel.append(el("div","explainTitle",
+    `Why consider ${crop.name}?`
+   ));
 
-   paragraph(panel,
-    `Climate compatibility: ${fmt(crop.climate_score," / 100")}.`
-   );
+   const thresholds=crop.thresholds||{};
+   const temp=thresholds.mean_temperature_c||[];
+   const rain=thresholds.monthly_rainfall_mm||[];
 
-   const t = crop.thresholds || {};
+   const evidence=el("div","evidenceGrid");
 
-   if(t.mean_temperature_c) {
-    paragraph(panel,
-     `Temperature screening range: ${t.mean_temperature_c.join("–")} °C.`
+   [
+    ["Climate screening",fmt(crop.climate_score," / 100")],
+    ["Candidate planting month",
+     crop.suggested_start_month
+      ?months[crop.suggested_start_month-1]
+      :"Not determined"],
+    ["Assumed temperature range",
+     temp.length?temp.join("–")+" °C":"Not available"],
+    ["Assumed monthly rainfall range",
+     rain.length?rain.join("–")+" mm":"Not available"]
+   ].forEach(([name,value])=>{
+    const box=el("div","evidenceBox");
+    box.append(
+     el("small","",name),
+     el("strong","",value)
     );
+    evidence.append(box);
+   });
+
+   panel.append(evidence);
+
+   const monthly=assessment?.monthly_climatology||
+    climateData?.monthly_climatology||[];
+
+   const start=crop.suggested_start_month;
+   const duration=Math.min(crop.approx_duration_months||4,12);
+
+   const selectedMonths=[];
+
+   if(start){
+    for(let i=0;i<duration;i++){
+     const month=((start-1+i)%12)+1;
+     const row=monthly.find(r=>Number(r.month)===month);
+     if(row)selectedMonths.push(row);
+    }
    }
 
-   if(t.monthly_rainfall_mm) {
-    paragraph(panel,
-     `Monthly rainfall screening range: ${t.monthly_rainfall_mm.join("–")} mm.`
+   const section=el("div","explainSection");
+   section.append(el("h3","","NASA environmental evidence"));
+
+   if(!selectedMonths.length){
+    paragraph(section,
+     "A complete planting-window comparison is not available for this crop."
     );
+   }else{
+    const temperatures=selectedMonths
+     .map(r=>r.temperature_c)
+     .filter(v=>v!=null);
+
+    const rainfall=selectedMonths
+     .map(r=>r.rainfall_mm)
+     .filter(v=>v!=null);
+
+    if(temperatures.length){
+     const average=temperatures.reduce((a,b)=>a+b,0)/
+      temperatures.length;
+     paragraph(section,
+      `Mean historical temperature during the screened period: ${fmt(average," °C")}.`
+     );
+    }
+
+    if(rainfall.length){
+     const average=rainfall.reduce((a,b)=>a+b,0)/
+      rainfall.length;
+     paragraph(section,
+      `Mean historical monthly rainfall during the screened period: ${fmt(average," mm")}.`
+     );
+    }
+
+    paragraph(section,
+     "The provisional score compares historical rainfall and temperature with assumed crop screening ranges. It is not a probability of crop success."
+    );
+
+    const scroll=el("div","tableScroll");
+    const table=el("table","evidenceTable");
+    const thead=el("thead");
+    const header=el("tr");
+
+    ["Month","Rainfall (mm)","Temp (°C)","Screening"].forEach(x=>{
+     header.append(el("th","",x));
+    });
+
+    thead.append(header);
+    table.append(thead);
+
+    const tbody=el("tbody");
+
+    selectedMonths.forEach(row=>{
+     const tr=el("tr");
+
+     const rainfallOk=
+      row.rainfall_mm!=null&&rain.length===2&&
+      row.rainfall_mm>=rain[0]&&row.rainfall_mm<=rain[1];
+
+     const tempOk=
+      row.temperature_c!=null&&temp.length===2&&
+      row.temperature_c>=temp[0]&&row.temperature_c<=temp[1];
+
+     const missing=
+      row.rainfall_mm==null||row.temperature_c==null;
+
+     const state=missing
+      ?"Incomplete data"
+      :rainfallOk&&tempOk
+       ?"Within both ranges"
+       :"Review conditions";
+
+     [
+      months[Number(row.month)-1],
+      fmt(row.rainfall_mm),
+      fmt(row.temperature_c),
+      state
+     ].forEach(x=>tr.append(el("td","",x)));
+
+     tbody.append(tr);
+    });
+
+    table.append(tbody);
+    scroll.append(table);
+    section.append(scroll);
    }
 
-   const m = assessment?.monthly_climatology?.find(x =>
-    Number(x.month)===crop.suggested_start_month
-   );
+   panel.append(section);
 
-   if(m) {
-    paragraph(panel,
-     `At the candidate starting month, historical rainfall averages `
-     +`${fmt(m.rainfall_mm," mm")} and mean temperature `
-     +`${fmt(m.temperature_c," °C")}.`
+   if(crop.alternative_windows?.length){
+    const windows=el("div","explainSection");
+    windows.append(el("h3","","Alternative planting windows"));
+
+    paragraph(windows,
+     crop.alternative_windows.map(w=>
+      `${months[w.start_month-1]} (${fmt(w.climate_score," / 100")})`
+     ).join(" · ")
     );
+
+    panel.append(windows);
    }
 
-   paragraph(panel,
-    "This is an exploratory climate screening, not a prediction of yield."
-   );
+   const advice=cropAdvice[crop.id];
 
-   const viewBtn = el("button","","View in 3D");
-   viewBtn.style.marginTop = "12px";
-   viewBtn.onclick = () => {
+   if(advice){
+    [
+     ["Management considerations",advice.management],
+     ["Potential risks",advice.risks],
+     ["What this means for your farming SHIFT",advice.shift]
+    ].forEach(([heading,body])=>{
+     const block=el("div","explainSection");
+     block.append(el("h3","",heading));
+     paragraph(block,body);
+     panel.append(block);
+    });
+   }
+
+   const actions=el("div","explainActions");
+
+   const view=el("button","","See Crop in 3D");
+   view.onclick=()=>{
     showCrop(crop.id,crop.name,"Selected crop");
     farmMode();
+    document.getElementById("map").scrollIntoView({
+     behavior:"smooth",block:"center"
+    });
    };
 
-   panel.append(viewBtn);
-   detail.append(panel);
+   const ask=el("button","secondaryButton","Ask BUMI about this crop");
+   ask.onclick=()=>{
+    $("bumiQuestion").value=
+     `Using the NASA climate evidence for my selected farm, explain whether ${crop.name} is a reasonable option, its risks, and how it could fit my farming shift.`;
+    $("bumiQuestion").scrollIntoView({
+     behavior:"smooth",block:"center"
+    });
+    $("bumiQuestion").focus();
+   };
+
+   actions.append(view,ask);
+   panel.append(actions);
+
+   card.append(panel);
   };
 
   info.append(button);
@@ -1323,12 +1424,13 @@ function renderCrops(crops) {
 
 /* ROTATION STRATEGIES */
 
-function renderStrategies(items) {
- const root = $("rotationList");
+function renderStrategies(items){
+ const root=$("rotationList");
  root.replaceChildren();
+ selectedStrategy=null;
 
- items.forEach((s,i) => {
-  const button = el("button","rotation");
+ items.forEach((s,i)=>{
+  const button=el("button","rotation");
 
   button.append(
    el("strong","",
@@ -1340,37 +1442,37 @@ function renderStrategies(items) {
    )
   );
 
-  button.onclick = () => {
-   document.querySelectorAll(".rotation").forEach(x =>
+  button.onclick=()=>{
+   document.querySelectorAll(".rotation").forEach(x=>
     x.classList.remove("active")
    );
-
    button.classList.add("active");
-   selectedStrategy = s;
-   window.BUMIContext.selected_rotation = s.id;
 
-   const detail = $("strategyDetails");
+   selectedStrategy=s;
+   window.BUMIContext.selected_rotation=s.id;
+
+   const detail=$("strategyDetails");
    detail.replaceChildren();
 
-   const panel = el("div","detail");
+   const panel=el("div","detail");
    panel.append(el("h3","",s.crops.join(" → ")));
 
-   if(s.evidence) {
+   if(s.evidence){
     panel.append(el("h3","","Environmental Evidence"));
     paragraph(panel,s.evidence);
    }
 
-   if(s.comparison_to_baseline) {
+   if(s.comparison_to_baseline){
     panel.append(el("h3","","Compared with Baseline"));
     paragraph(panel,s.comparison_to_baseline);
    }
 
-   if(s.potential_benefits?.length) {
+   if(s.potential_benefits?.length){
     panel.append(el("h3","","Potential Benefits"));
     bullets(panel,s.potential_benefits);
    }
 
-   if(s.risks?.length) {
+   if(s.risks?.length){
     panel.append(el("h3","","Risks and Local Checks"));
     bullets(panel,s.risks);
    }
@@ -1382,7 +1484,7 @@ function renderStrategies(items) {
 
   root.append(button);
 
-  if(i===1 || (items.length===1 && i===0)) {
+  if(i===1||(items.length===1&&i===0)){
    button.click();
   }
  });
@@ -1390,18 +1492,18 @@ function renderStrategies(items) {
 
 /* FARMING SHIFTS */
 
-function renderShifts(data) {
- const root = $("shiftList");
+function renderShifts(data){
+ const root=$("shiftList");
  root.replaceChildren();
 
- const best = (data.strategies || []).find(s =>
-  s.type==="alternative"
- );
- const top = (data.crop_recommendations || [])[0];
+ const best=(data.strategies||[])
+  .find(s=>s.type==="alternative");
 
- const shifts = [];
+ const top=(data.crop_recommendations||[])[0];
 
- if(best) {
+ const shifts=[];
+
+ if(best){
   shifts.push([
    "Crop diversification",
    `Explore ${best.crops.join(" → ")} as an alternative to your baseline.`
@@ -1412,11 +1514,10 @@ function renderShifts(data) {
   ]);
  }
 
- if(top) {
+ if(top){
   shifts.push([
    "Crop selection",
-   `${top.name} has a provisional climate score of `
-   +`${fmt(top.climate_score," / 100")}.`
+   `${top.name} has a provisional climate score of ${fmt(top.climate_score," / 100")}.`
   ]);
  }
 
@@ -1425,9 +1526,9 @@ function renderShifts(data) {
   "Compare crop-family diversity, soil cover and rainfall exposure."
  ]);
 
- shifts.forEach(([title,description],i) => {
-  const card = el("div","shift");
-  card.style.borderLeftColor =
+ shifts.forEach(([title,description],i)=>{
+  const card=el("div","shift");
+  card.style.borderLeftColor=
    ["#216ad6","#7658cb","#079f9b","#e9a12a"][i%4];
 
   card.append(
@@ -1438,195 +1539,181 @@ function renderShifts(data) {
  });
 }
 
-/* CUSTOMIZED ACTIONS */
+/* FARMING CHECKLIST */
 
-function renderActions(strategy) {
- const root = $("activityList");
+function renderActions(strategy){
+ const root=$("activityList");
  root.replaceChildren();
 
- let items = [];
+ let items=[];
 
- if(strategy?.stages?.length) {
-  items = strategy.stages.map((s,i) => ({
-   category:"Crop calendar",
+ if(strategy?.stages?.length){
+  items=strategy.stages.map((s,i)=>({
    title:`Stage ${i+1}: ${s.crop}`,
-   reason:`Candidate period: ${s.start_month}–${s.end_month}. `
-    +"Review establishment and field conditions."
+   reason:`Candidate period: ${s.start_month}–${s.end_month}. Review establishment and local field conditions.`
   }));
  }
 
- if(strategy?.legume_included) {
+ if(strategy?.legume_included){
   items.push({
-   category:"Nutrient management",
    title:"Review legume establishment",
-   reason:"Check nodulation, biomass and residue management."
+   reason:"Check nodulation, biomass and residue-management practices."
   });
  }
 
- if(strategy?.ground_cover_proxy < 70) {
+ if(strategy?.ground_cover_proxy<70){
   items.push({
-   category:"Soil protection",
    title:"Reduce exposed-soil periods",
-   reason:"Consider suitable mulching or cover-crop practices."
+   reason:"Consider appropriate mulching or cover-crop practices."
   });
  }
 
- (strategy?.risks || []).forEach(risk => {
+ (strategy?.risks||[]).forEach(risk=>{
   items.push({
-   category:"Local checks",
    title:"Review a strategy-specific risk",
    reason:risk
   });
  });
 
- if(!items.length) {
-  items = assessment?.suggested_activities || [];
+ if(!items.length){
+  items=assessment?.suggested_activities||[];
  }
 
- items.forEach((item,i) => {
-  const card = el("div","action");
-  card.style.borderLeftColor =
+ items.forEach((item,i)=>{
+  const card=el("div","action");
+  card.style.borderLeftColor=
    ["#216ad6","#079f9b","#7658cb","#e9a12a"][i%4];
 
   card.append(
    el("strong","",item.title),
    el("p","",item.reason||item.description||"")
   );
-
   root.append(card);
  });
 }
 
 /* ANALYZE FARM */
 
-$("analyzeBtn").onclick = async () => {
- const btn = $("analyzeBtn");
- const ticket = ++version;
+$("analyzeBtn").onclick=async()=>{
+ const btn=$("analyzeBtn");
+ const ticket=++version;
 
- const params = {
+ const params={
   ...coords,
   priority:$("priority").value,
   baseline:$("baseline").value
  };
 
- btn.disabled = true;
+ btn.disabled=true;
  put("status","Analyzing NASA observations and farming strategies...");
 
- const results = await Promise.allSettled([
-  api("/climate/history",coords),
-  api("/recommendations",params)
- ]);
+ try{
+  const results=await Promise.allSettled([
+   api("/climate/history",coords),
+   api("/recommendations",params)
+  ]);
 
- if(ticket !== version) {
-  btn.disabled = false;
-  return;
- }
+  if(ticket!==version)return;
 
- const [climateResult,recommendationResult] = results;
+  const [climateResult,recommendationResult]=results;
 
- if(climateResult.status==="fulfilled") {
-  renderNASA(climateResult.value);
- }
+  if(climateResult.status==="fulfilled"){
+   renderNASA(climateResult.value);
+  }
 
- if(recommendationResult.status==="fulfilled") {
-  assessment = recommendationResult.value;
+  if(recommendationResult.status==="fulfilled"){
+   assessment=recommendationResult.value;
 
-  renderCrops(assessment.crop_recommendations || []);
-  renderStrategies(
-   assessment.strategies || assessment.rotation_options || []
-  );
-  renderShifts(assessment);
+   renderCrops(assessment.crop_recommendations||[]);
+   renderStrategies(
+    assessment.strategies||assessment.rotation_options||[]
+   );
+   renderShifts(assessment);
 
-  if(!selectedStrategy) renderActions(null);
- }
+   if(!selectedStrategy)renderActions(null);
+  }
 
- if(
-  climateResult.status==="fulfilled" &&
-  recommendationResult.status==="fulfilled"
- ) {
-  put("status","Analysis complete. Explore your results.");
- } else {
   put("status",
-   "Some information could not be loaded. Please try again."
+   climateResult.status==="fulfilled"&&
+   recommendationResult.status==="fulfilled"
+    ?"Analysis complete. Explore your results."
+    :"Some information could not be loaded. Please try again."
   );
+ }finally{
+  if(ticket===version)btn.disabled=false;
  }
-
- btn.disabled = false;
 };
 
-/* GEMINI CHAT */
+/* GEMINI CHAT WITH SAVED HISTORY */
 
-const STORAGE_KEY = "bumi_shift_chat_v65";
+const STORAGE_KEY="bumi_shift_chat_v65";
+let messages=[];
+let pending=null;
+let busy=false;
+let generation=0;
+let controller=null;
 
-let messages = [];
-let pending = null;
-let busy = false;
-let generation = 0;
-let controller = null;
-
-function saveChat() {
- try {
+function saveChat(){
+ try{
   localStorage.setItem(STORAGE_KEY,JSON.stringify({
-   messages:messages.slice(-24),
-   pending
+   messages:messages.slice(-24),pending
   }));
- } catch(e) {}
+ }catch(e){}
 }
 
-function restoreChat() {
- try {
-  const saved = JSON.parse(
-   localStorage.getItem(STORAGE_KEY) || "{}"
+function restoreChat(){
+ try{
+  const saved=JSON.parse(
+   localStorage.getItem(STORAGE_KEY)||"{}"
   );
 
-  if(Array.isArray(saved.messages)) {
-   messages = saved.messages.filter(m =>
-    m &&
-    ["user","assistant"].includes(m.role) &&
+  if(Array.isArray(saved.messages)){
+   messages=saved.messages.filter(m=>
+    m&&["user","assistant"].includes(m.role)&&
     typeof m.content==="string"
    ).slice(-24);
   }
 
-  if(saved.pending?.question && saved.pending?.farm) {
-   pending = saved.pending;
+  if(saved.pending?.question&&saved.pending?.farm){
+   pending=saved.pending;
   }
- } catch(e) {}
+ }catch(e){}
 }
 
-function bubble(role,content) {
- const node = el("div","bumiBubble "+role,content);
+function bubble(role,content){
+ const node=el("div","bumiBubble "+role,content);
  $("bumiChat").append(node);
- $("bumiChat").scrollTop = $("bumiChat").scrollHeight;
+ $("bumiChat").scrollTop=$("bumiChat").scrollHeight;
  return node;
 }
 
-function renderChat() {
+function renderChat(){
  $("bumiChat").replaceChildren();
 
- if(!messages.length && !pending) {
+ if(!messages.length&&!pending){
   bubble("assistant",
    "What would you like to explore about your farm?"
   );
  }
 
- messages.forEach(m => bubble(m.role,m.content));
+ messages.forEach(m=>bubble(m.role,m.content));
 
- if(pending) {
+ if(pending){
   bubble("user",pending.question);
 
-  if(!busy) {
-   const box = bubble("assistant",
+  if(!busy){
+   const box=bubble("assistant",
     "Your question is saved. Continue when you're ready."
    );
-   const retry = el("button","bumiRetry","Continue");
-   retry.onclick = () => sendChat(true);
+   const retry=el("button","bumiRetry","Continue");
+   retry.onclick=()=>sendChat(true);
    box.append(retry);
   }
  }
 }
 
-function farmContext() {
- return {
+function farmContext(){
+ return{
   latitude:coords.latitude,
   longitude:coords.longitude,
   priority:$("priority").value,
@@ -1636,133 +1723,121 @@ function farmContext() {
  };
 }
 
-async function askGemini(question,farm,history) {
- controller = new AbortController();
- const active = controller;
- const timeout = setTimeout(() => active.abort(),105000);
+async function askGemini(question,farm,history){
+ controller=new AbortController();
+ const active=controller;
+ const timeout=setTimeout(()=>active.abort(),105000);
 
- try {
-  const response = await fetch("/ask",{
+ try{
+  const response=await fetch("/ask",{
    method:"POST",
    headers:{"Content-Type":"application/json"},
    signal:active.signal,
    body:JSON.stringify({
-    question,
-    ...farm,
-    history
+    question,...farm,history
    })
   });
 
-  const data = await response.json().catch(() => ({}));
+  const data=await response.json().catch(()=>({}));
 
-  if(
-   !response.ok ||
-   data.generated_by !== "Gemini" ||
-   typeof data.answer !== "string" ||
-   !data.answer.trim()
-  ) {
+  if(!response.ok||
+     data.generated_by!=="Gemini"||
+     typeof data.answer!=="string"||
+     !data.answer.trim()){
    throw Error("Answer not completed");
   }
 
   return data.answer.trim();
- } finally {
+ }finally{
   clearTimeout(timeout);
-  if(controller===active) controller=null;
+  if(controller===active)controller=null;
  }
 }
 
-async function sendChat(resume=false) {
- if(busy) return;
+async function sendChat(resume=false){
+ if(busy)return;
 
- if(!resume) {
-  const question = $("bumiQuestion").value.trim();
-  if(!question) return;
+ if(!resume){
+  const question=$("bumiQuestion").value.trim();
+  if(!question)return;
 
-  pending = {
-   question,
-   farm:farmContext()
-  };
-
-  $("bumiQuestion").value = "";
+  pending={question,farm:farmContext()};
+  $("bumiQuestion").value="";
   saveChat();
  }
 
- if(!pending) return;
+ if(!pending)return;
 
- const current = pending;
- const currentGeneration = generation;
+ const current=pending;
+ const currentGeneration=generation;
 
- busy = true;
- $("bumiSend").disabled = true;
- $("bumiSend").textContent = "Thinking...";
- $("bumiStatus").textContent =
-  "BUMI is reviewing your question...";
+ busy=true;
+ $("bumiSend").disabled=true;
+ $("bumiSend").textContent="Thinking...";
+ $("bumiStatus").textContent="BUMI is reviewing your question...";
 
  renderChat();
 
- const loading = bubble(
-  "pending",
+ const loading=bubble("pending",
   "Looking at the evidence and possible farming options..."
  );
 
- try {
-  const answer = await askGemini(
-   current.question,
-   current.farm,
-   messages.slice(-12)
+ try{
+  const answer=await askGemini(
+   current.question,current.farm,messages.slice(-12)
   );
 
-  if(currentGeneration!==generation) return;
+  if(currentGeneration!==generation)return;
 
   messages.push(
    {role:"user",content:current.question},
    {role:"assistant",content:answer}
   );
 
-  messages = messages.slice(-24);
-  pending = null;
+  messages=messages.slice(-24);
+  pending=null;
   saveChat();
+  $("bumiStatus").textContent="Powered by Gemini";
 
-  $("bumiStatus").textContent = "Powered by Gemini";
- } catch(e) {
-  if(currentGeneration!==generation) return;
-  $("bumiStatus").textContent = "Question saved";
- } finally {
+ }catch(e){
+  if(currentGeneration!==generation)return;
+  $("bumiStatus").textContent="Question saved";
+
+ }finally{
   loading.remove();
 
-  if(currentGeneration===generation) {
-   busy = false;
-   $("bumiSend").disabled = false;
-   $("bumiSend").textContent = "Send";
+  if(currentGeneration===generation){
+   busy=false;
+   $("bumiSend").disabled=false;
+   $("bumiSend").textContent="Send";
    renderChat();
   }
  }
 }
 
-$("bumiSend").onclick = () => sendChat(false);
+$("bumiSend").onclick=()=>sendChat(false);
 
-$("bumiQuestion").addEventListener("keydown",e => {
- if(e.key==="Enter" && !e.shiftKey) {
+$("bumiQuestion").addEventListener("keydown",e=>{
+ if(e.key==="Enter"&&!e.shiftKey){
   e.preventDefault();
   sendChat(false);
  }
 });
 
-$("bumiClear").onclick = () => {
+$("bumiClear").onclick=()=>{
  generation++;
  controller?.abort();
 
- messages = [];
- pending = null;
- busy = false;
+ messages=[];
+ pending=null;
+ busy=false;
 
- $("bumiSend").disabled = false;
- $("bumiSend").textContent = "Send";
+ $("bumiSend").disabled=false;
+ $("bumiSend").textContent="Send";
 
  saveChat();
  renderChat();
-
- $("bumiStatus").textContent = "Powered by Gemini";
+ $("bumiStatus").textContent="Powered by Gemini";
 };
 
 restoreChat();
@@ -1772,6 +1847,5 @@ renderChat();
 </script>
 
 <script type="module" src="/static/farm3d.js"></script>
-
 </body>
 </html>
