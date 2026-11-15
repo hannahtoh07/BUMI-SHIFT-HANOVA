@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BUMI SHIFT | Rethink Your Crops</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -12,372 +12,508 @@
 
 <script type="importmap">
 {
- "imports":{
-  "three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js",
-  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"
- }
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"
+  }
 }
 </script>
 
 <style>
-:root{
- --navy:#10294d;
- --blue:#216ad6;
- --teal:#079f9b;
- --purple:#7658cb;
- --amber:#e9a12a;
- --coral:#e97c6e;
- --bg:#f3f7fc;
- --line:#dce5f0;
- --muted:#526a87;
- --shadow:0 8px 28px #18355d0d;
+:root {
+  --navy:#10294d;
+  --blue:#216ad6;
+  --teal:#079f9b;
+  --purple:#7658cb;
+  --amber:#e9a12a;
+  --coral:#e97c6e;
+  --bg:#f3f7fc;
+  --line:#dce5f0;
+  --muted:#526a87;
+  --shadow:0 8px 28px #18355d0d;
 }
-*{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{
- margin:0;background:var(--bg);color:var(--navy);
- font:15px/1.55 "Segoe UI",Arial,sans-serif
+
+* {box-sizing:border-box}
+html {scroll-behavior:smooth}
+body {
+  margin:0;
+  background:var(--bg);
+  color:var(--navy);
+  font:15px/1.55 "Segoe UI",Arial,sans-serif;
 }
-button,input,select,textarea{font:inherit}
-button{
- cursor:pointer;border:0;border-radius:11px;
- padding:11px 17px;background:var(--blue);
- color:white;font-weight:700
+button,input,select {font:inherit}
+button {
+  cursor:pointer;
+  border:0;
+  border-radius:11px;
+  padding:11px 17px;
+  background:var(--blue);
+  color:white;
+  font-weight:700;
 }
-button:hover{filter:brightness(1.08)}
-button:disabled{opacity:.55;cursor:wait}
-input,select,textarea{
- border:1px solid #cbd8e8;border-radius:11px;
- padding:12px;background:white;color:var(--navy)
+button:hover {filter:brightness(1.08)}
+button:disabled {opacity:.55;cursor:wait}
+input,select {
+  border:1px solid #cbd8e8;
+  border-radius:11px;
+  padding:12px;
+  background:white;
+  color:var(--navy);
 }
-textarea{min-height:90px;resize:vertical}
-h1,h2,h3,p{margin:0}
-h1{font-size:clamp(30px,3.8vw,54px);line-height:1.12}
-h2{font-size:23px}
-h3{font-size:16px}
-p{line-height:1.65}
-a{color:var(--blue)}
-.app{max-width:1600px;margin:auto;padding:20px}
-.hidden{display:none!important}
-.muted,.sub{color:var(--muted);font-size:13px}
-.eyebrow{
- color:var(--blue);font-size:11px;font-weight:850;
- letter-spacing:1.4px;text-transform:uppercase;margin-bottom:8px
+h1,h2,h3,p {margin:0}
+h1 {font-size:clamp(30px,3.8vw,54px);line-height:1.12}
+h2 {font-size:23px}
+h3 {font-size:16px}
+p {line-height:1.65}
+a {color:var(--blue)}
+.app {max-width:1600px;margin:auto;padding:20px}
+.hidden {display:none!important}
+.sub,.muted {color:var(--muted);font-size:13px}
+.eyebrow {
+  color:var(--blue);
+  font-size:11px;
+  font-weight:850;
+  letter-spacing:1.4px;
+  text-transform:uppercase;
+  margin-bottom:8px;
 }
-.panel{
- background:white;border:1px solid var(--line);
- border-radius:20px;padding:23px;
- box-shadow:var(--shadow);min-width:0
+.panel {
+  background:white;
+  border:1px solid var(--line);
+  border-radius:20px;
+  padding:23px;
+  box-shadow:var(--shadow);
+  min-width:0;
 }
-.head{
- display:flex;justify-content:space-between;align-items:center;
- gap:12px;flex-wrap:wrap;margin-bottom:15px
+.head {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:12px;
+  margin-bottom:15px;
 }
-.pill{
- background:#e9f2ff;color:#24518e;
- border-radius:30px;padding:8px 14px;font-size:12px
+.pill {
+  background:#e9f2ff;
+  color:#24518e;
+  border-radius:30px;
+  padding:8px 14px;
+  font-size:12px;
 }
-.section{margin-top:19px}
-.stack{display:grid;gap:19px;align-content:start;min-width:0}
-.two-col{
- display:grid;grid-template-columns:1fr 1fr;
- gap:19px;align-items:start
+.section {margin-top:19px}
+.two-col {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:19px;
+  align-items:start;
 }
-header{
- display:flex;justify-content:space-between;
- align-items:center;flex-wrap:wrap;
- gap:15px;padding:10px 0 24px
+.stack {display:grid;gap:19px;align-content:start;min-width:0}
+header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:15px;
+  padding:10px 0 24px;
 }
-.logo{
- font-size:clamp(38px,4vw,56px);
- font-weight:950;letter-spacing:-2px;line-height:1
+.logo {
+  font-size:clamp(38px,4vw,56px);
+  font-weight:950;
+  letter-spacing:-2px;
+  line-height:1;
 }
-.logo span{color:var(--blue)}
-.subtitle{font-size:13px;color:var(--muted);margin-top:8px}
+.logo span {color:var(--blue)}
+.subtitle {font-size:13px;color:var(--muted);margin-top:8px}
 
 /* HERO */
-.hero{
- position:relative;overflow:hidden;border-radius:24px;
- min-height:330px;display:flex;align-items:center;
- padding:40px;
- background:
- linear-gradient(100deg,#10294df0,#10294db8 60%,#10294d33),
- url("https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1800&q=85")
- center/cover
+.hero {
+  position:relative;
+  overflow:hidden;
+  border-radius:24px;
+  min-height:330px;
+  display:flex;
+  align-items:center;
+  padding:40px;
+  background:
+    linear-gradient(100deg,#10294df0,#10294db8 60%,#10294d33),
+    url("https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1800&q=85")
+    center/cover;
 }
-.heroContent{position:relative;z-index:2;max-width:770px}
-.hero h1{color:white}
-.hero p{color:#dcecff;margin-top:15px;font-size:17px}
-.hero .eyebrow{color:#67e3e8}
-.heroOrb{
- position:absolute;width:390px;height:390px;
- border:1px solid #ffffff55;border-radius:50%;
- right:-90px;top:-90px;
- box-shadow:0 0 0 45px #ffffff0b,0 0 0 90px #ffffff08
+.heroContent {position:relative;z-index:2;max-width:770px}
+.hero h1 {color:white}
+.hero p {color:#dcecff;margin-top:15px;font-size:17px}
+.hero .eyebrow {color:#67e3e8}
+.heroOrb {
+  position:absolute;
+  width:390px;
+  height:390px;
+  border:1px solid #ffffff55;
+  border-radius:50%;
+  right:-90px;
+  top:-90px;
+  box-shadow:0 0 0 45px #ffffff0b,0 0 0 90px #ffffff08;
 }
-.heroNote{
- margin-top:20px;display:inline-flex;
- padding:9px 15px;border:1px solid #ffffff55;
- background:#ffffff1c;color:white;
- border-radius:40px;font-size:12px
+.heroNote {
+  margin-top:20px;
+  display:inline-flex;
+  padding:9px 15px;
+  border:1px solid #ffffff55;
+  background:#ffffff1c;
+  color:white;
+  border-radius:40px;
+  font-size:12px;
 }
 
 /* FARM INPUTS */
-.location{display:flex;gap:10px;flex-wrap:wrap}
-.location input{flex:1;min-width:190px}
-.location select{min-width:175px}
-.status{font-size:13px;color:var(--muted);margin-top:12px}
-.priorityExplanation{
- margin-top:14px;padding:14px 17px;
- border-radius:12px;background:#eef5ff;
- border-left:4px solid var(--blue)
+.location {display:flex;gap:10px;flex-wrap:wrap}
+.location input {flex:1;min-width:190px}
+.location select {min-width:175px}
+.status {font-size:13px;color:var(--muted);margin-top:12px}
+.priorityExplanation {
+  margin-top:14px;
+  padding:14px 17px;
+  border-radius:12px;
+  background:#eef5ff;
+  border-left:4px solid var(--blue);
 }
-.priorityExplanation strong{display:block}
-.priorityExplanation p{font-size:13px;color:var(--muted)}
+.priorityExplanation strong {display:block}
+.priorityExplanation p {font-size:13px;color:var(--muted)}
 
 /* MAP AND 3D */
-#map{
- height:420px;border-radius:14px;overflow:hidden;z-index:0
+#map {
+  height:420px;
+  border-radius:14px;
+  overflow:hidden;
+  z-index:0;
 }
-#farm3d{
- height:420px;background:#b9dfec;border-radius:14px;
- overflow:hidden;position:relative;touch-action:none
+#farm3d {
+  height:420px;
+  background:#b9dfec;
+  border-radius:14px;
+  overflow:hidden;
+  position:relative;
+  touch-action:none;
 }
-#farm3d canvas{display:block}
-.mapControls,.timeline{
- display:flex;gap:9px;flex-wrap:wrap;margin:14px 0
+#farm3d canvas {display:block}
+.mapControls,.timeline {
+  display:flex;
+  gap:9px;
+  flex-wrap:wrap;
+  margin:14px 0;
 }
-.mapControls button,.timeline button{
- flex:1;background:#e9f1fb;color:var(--navy)
+.mapControls button,.timeline button {
+  flex:1;
+  background:#e9f1fb;
+  color:var(--navy);
 }
-.mapControls button.active,.timeline button.active{
- background:var(--blue);color:white
+.mapControls button.active,.timeline button.active {
+  background:var(--blue);
+  color:white;
 }
-.farmLabel{
- position:absolute;left:13px;top:13px;z-index:3;
- background:#ffffffed;padding:11px 15px;
- border-radius:11px;pointer-events:none
+.farmLabel {
+  position:absolute;
+  left:13px;
+  top:13px;
+  z-index:3;
+  background:#ffffffed;
+  padding:11px 15px;
+  border-radius:11px;
+  pointer-events:none;
 }
-.farmLabel strong{display:block}
-.farmLabel small{color:var(--muted)}
+.farmLabel strong {display:block}
+.farmLabel small {color:var(--muted)}
 
-/* SHIFTS AND ROTATIONS */
-.shift{
- padding:16px;border:1px solid var(--line);
- border-left:4px solid var(--blue);
- border-radius:13px;background:#f7faff;margin-top:10px
+/* SHIFTS */
+.shift {
+  padding:16px;
+  border:1px solid var(--line);
+  border-left:4px solid var(--blue);
+  border-radius:13px;
+  background:#f7faff;
+  margin-top:10px;
 }
-.shift h3{margin-bottom:5px}
-.shift p{color:var(--muted);font-size:13px}
-.rotation{
- width:100%;display:block;text-align:left;
- padding:15px;margin-top:10px;background:#f5f7fc;
- color:var(--navy);border:1px solid var(--line);
- border-radius:13px
-}
-.rotation.active{
- background:#eeeaff;border-color:var(--purple)
-}
-.rotation strong,.rotation small{display:block}
-.rotation small{color:var(--muted);margin-top:5px}
-.detail{
- background:#f5f8fd;border:1px solid var(--line);
- border-radius:13px;padding:17px;margin-top:12px
-}
-.detail h3{margin:13px 0 5px}
-.detail h3:first-child{margin-top:0}
-.detail p,.detail li{font-size:13px}
-.detail ul{padding-left:20px}
-
-/* CROP CARDS */
-.crop{
- display:grid;grid-template-columns:110px minmax(0,1fr);
- gap:14px;padding:13px;margin-top:11px;
- border:1px solid var(--line);border-radius:14px
-}
-.crop.active{
- background:#f0f6ff;border-color:var(--blue)
-}
-.cropPhoto{
- width:110px;height:115px;object-fit:cover;
- border-radius:10px;background:#e7eff8
-}
-.crop strong{display:block;font-size:17px}
-.crop small{display:block;color:var(--muted)}
-.crop button{padding:8px 12px;margin-top:9px;font-size:12px}
-
-/* EXPANDABLE EXPLANATION */
-.cropExplanation{
- grid-column:1/-1;
- border-top:1px solid #cbdcf1;
- margin-top:4px;padding-top:18px;
- animation:expandIn .25s ease
-}
-@keyframes expandIn{
- from{opacity:0;transform:translateY(-6px)}
- to{opacity:1;transform:translateY(0)}
-}
-.explainTitle{
- font-size:19px;font-weight:800;margin-bottom:9px
-}
-.evidenceGrid{
- display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
- gap:10px;margin:13px 0
-}
-.evidenceBox{
- padding:13px;background:white;
- border:1px solid var(--line);border-radius:12px
-}
-.evidenceBox small{
- display:block;color:var(--muted);font-size:12px
-}
-.evidenceBox strong{font-size:17px}
-.explainSection{margin-top:15px}
-.explainSection h3{margin-bottom:6px}
-.explainSection p{font-size:13px;color:var(--muted)}
-.evidenceTable{
- width:100%;border-collapse:collapse;
- font-size:12px;margin-top:10px
-}
-.evidenceTable th,.evidenceTable td{
- padding:9px;border-bottom:1px solid var(--line);
- text-align:left
-}
-.evidenceTable th{background:#e9f1fb}
-.tableScroll{overflow-x:auto}
-.explainActions{
- display:flex;gap:9px;flex-wrap:wrap;margin-top:15px
-}
-.secondaryButton{
- background:#e7effa;color:var(--navy)
-}
-.signal{
- display:inline-block;padding:3px 9px;
- border-radius:20px;font-size:11px;font-weight:700
-}
-.signal.good{background:#def5ed;color:#126a50}
-.signal.review{background:#fff0d7;color:#8a5b13}
-.signal.missing{background:#edf0f5;color:#526a87}
+.shift h3 {margin-bottom:5px}
+.shift p {color:var(--muted);font-size:13px}
 
 /* NASA DASHBOARD */
-.metrics{
- display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
- gap:12px;margin:20px 0
+.metrics {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:12px;
+  margin:20px 0;
 }
-.metric{
- background:#f2f6fc;border:1px solid #e0e9f5;
- border-radius:13px;padding:16px
+.metric {
+  background:#f2f6fc;
+  border:1px solid #e0e9f5;
+  border-radius:13px;
+  padding:16px;
 }
-.metric small{display:block;color:var(--muted)}
-.metric strong{
- display:block;font-size:23px;margin-top:7px;
- overflow-wrap:anywhere
+.metric small {display:block;color:var(--muted)}
+.metric strong {
+  display:block;
+  font-size:23px;
+  margin-top:7px;
+  overflow-wrap:anywhere;
 }
-.chartgrid{
- display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
- gap:15px
+.chartgrid {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:15px;
 }
-.chartcard{
- border:1px solid var(--line);border-radius:14px;
- padding:15px;min-width:0
+.chartcard {
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:15px;
+  min-width:0;
 }
-.chartcard h3{margin-bottom:12px}
-.chartbox{
- height:235px;position:relative;
- background:#f5f8fd;border-radius:12px;padding:10px
+.chartcard h3 {margin-bottom:12px}
+.chartbox {
+  height:235px;
+  position:relative;
+  background:#f5f8fd;
+  border-radius:12px;
+  padding:10px;
 }
-.chartbox canvas{width:100%!important;height:100%!important}
+.chartbox canvas {width:100%!important;height:100%!important}
+
+/* CROPS */
+.crop {
+  display:grid;
+  grid-template-columns:110px minmax(0,1fr);
+  gap:14px;
+  padding:13px;
+  margin-top:11px;
+  border:1px solid var(--line);
+  border-radius:14px;
+}
+.crop.active {background:#f0f6ff;border-color:var(--blue)}
+.cropPhoto {
+  width:110px;
+  height:115px;
+  object-fit:cover;
+  border-radius:10px;
+  background:#e7eff8;
+}
+.crop strong {display:block;font-size:17px}
+.crop small {display:block;color:var(--muted)}
+.crop button {padding:8px 12px;margin-top:9px;font-size:12px}
+
+/* EXPLORE WHY */
+.cropExplanation {
+  grid-column:1/-1;
+  border-top:1px solid #cbdcf1;
+  margin-top:4px;
+  padding-top:18px;
+  animation:expandIn .25s ease;
+}
+@keyframes expandIn {
+  from {opacity:0;transform:translateY(-6px)}
+  to {opacity:1;transform:translateY(0)}
+}
+.explainTitle {
+  font-size:19px;
+  font-weight:800;
+  margin-bottom:9px;
+}
+.evidenceGrid {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+  margin:13px 0;
+}
+.evidenceBox {
+  padding:13px;
+  background:white;
+  border:1px solid var(--line);
+  border-radius:12px;
+}
+.evidenceBox small {display:block;color:var(--muted);font-size:12px}
+.evidenceBox strong {font-size:17px}
+.explainSection {margin-top:15px}
+.explainSection h3 {margin-bottom:6px}
+.explainSection p {font-size:13px;color:var(--muted)}
+.tableScroll {overflow-x:auto}
+.evidenceTable {
+  width:100%;
+  border-collapse:collapse;
+  font-size:12px;
+  margin-top:10px;
+}
+.evidenceTable th,.evidenceTable td {
+  padding:9px;
+  border-bottom:1px solid var(--line);
+  text-align:left;
+}
+.evidenceTable th {background:#e9f1fb}
+.explainActions {display:flex;gap:9px;flex-wrap:wrap;margin-top:15px}
+.secondaryButton {background:#e7effa;color:var(--navy)}
+
+/* ROTATION */
+.rotation {
+  width:100%;
+  display:block;
+  text-align:left;
+  padding:15px;
+  margin-top:10px;
+  background:#f5f7fc;
+  color:var(--navy);
+  border:1px solid var(--line);
+  border-radius:13px;
+}
+.rotation.active {background:#eeeaff;border-color:var(--purple)}
+.rotation strong,.rotation small {display:block}
+.rotation small {color:var(--muted);margin-top:5px}
+.detail {
+  background:#f5f8fd;
+  border:1px solid var(--line);
+  border-radius:13px;
+  padding:17px;
+  margin-top:12px;
+}
+.detail h3 {margin:13px 0 5px}
+.detail h3:first-child {margin-top:0}
+.detail p,.detail li {font-size:13px}
+.detail ul {padding-left:20px}
+
+/* EVIDENCE COMPARISON */
+.decisionHeader {
+  background:linear-gradient(110deg,#10294d,#1c548d);
+  color:white;
+  border-radius:15px;
+  padding:23px;
+  margin:15px 0;
+}
+.decisionHeader h3 {font-size:22px;margin-bottom:7px}
+.decisionHeader p {color:#dcecff;font-size:13px}
+.comparisonGrid {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+  margin:15px 0;
+}
+.comparisonCard {
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:17px;
+  background:#f7faff;
+}
+.comparisonCard.alternative {
+  border-color:#9edcd4;
+  background:#effaf7;
+}
+.comparisonCard small {color:var(--muted)}
+.comparisonCard h3 {margin:7px 0}
+.comparisonCard p {font-size:13px;color:var(--muted)}
+.evidenceStats {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:11px;
+  margin:15px 0;
+}
+.evidenceStat {
+  padding:15px;
+  background:#f2f6fc;
+  border:1px solid var(--line);
+  border-radius:12px;
+}
+.evidenceStat small {display:block;color:var(--muted)}
+.evidenceStat strong {display:block;font-size:21px;margin-top:6px}
+.reasonGrid {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:13px;
+}
+.reasonCard {
+  padding:17px;
+  border:1px solid var(--line);
+  border-left:4px solid var(--blue);
+  border-radius:13px;
+  background:#f7faff;
+}
+.reasonCard h3 {margin-bottom:7px}
+.reasonCard p,.reasonCard li {font-size:13px;color:var(--muted)}
+.reasonCard ul {padding-left:19px;margin:8px 0}
+.evidenceFoot {
+  padding:14px;
+  margin-top:15px;
+  background:#eef5ff;
+  border-radius:12px;
+  font-size:13px;
+  color:var(--muted);
+}
 
 /* ACTIONS */
-.actions{
- display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
- gap:13px;margin-top:15px
+.actions {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:13px;
+  margin-top:15px;
 }
-.action{
- padding:18px;background:#f5f8fd;
- border:1px solid var(--line);
- border-left:5px solid var(--teal);
- border-radius:13px;min-height:125px
+.action {
+  padding:18px;
+  background:#f5f8fd;
+  border:1px solid var(--line);
+  border-left:5px solid var(--teal);
+  border-radius:13px;
+  min-height:125px;
 }
-.action strong{display:block}
-.action p{font-size:13px;color:var(--muted);margin-top:7px}
-
-/* GEMINI CHAT */
-#bumiChat{
- display:flex;flex-direction:column;gap:12px;
- max-height:480px;min-height:160px;overflow:auto;
- padding:18px;margin:16px 0;background:#f4f7fc;
- border:1px solid var(--line);border-radius:15px
-}
-.bumiBubble{
- max-width:85%;padding:13px 16px;border-radius:14px;
- white-space:pre-wrap;overflow-wrap:anywhere;
- line-height:1.65
-}
-.bumiBubble.user{
- align-self:flex-end;background:#dcecff
-}
-.bumiBubble.assistant{
- align-self:flex-start;background:white;
- border:1px solid var(--line)
-}
-.bumiBubble.pending{
- align-self:flex-start;background:#e8effa;color:var(--muted)
-}
-.bumiCompose{display:flex;gap:11px;align-items:flex-end}
-.bumiCompose textarea{flex:1;min-width:0}
-.bumiFooter{
- display:flex;justify-content:space-between;
- align-items:center;gap:12px;margin-top:12px;
- color:var(--muted);font-size:12px
-}
-#bumiClear{background:#e7effa;color:var(--navy)}
-.bumiRetry{margin-top:10px}
+.action strong {display:block}
+.action p {font-size:13px;color:var(--muted);margin-top:7px}
 
 /* PHOTOGRAPHY */
-.gallery{
- display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
- gap:15px
+.gallery {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:15px;
 }
-.photoCard{
- border:1px solid var(--line);border-radius:15px;
- overflow:hidden;background:white
+.photoCard {
+  border:1px solid var(--line);
+  border-radius:15px;
+  overflow:hidden;
+  background:white;
 }
-.photoCard img{
- width:100%;height:220px;object-fit:cover;
- display:block;background:#e8eff7
+.photoCard img {
+  width:100%;
+  height:220px;
+  object-fit:cover;
+  display:block;
+  background:#e8eff7;
 }
-.photoInfo{padding:14px}
-.photoInfo p{font-size:12px;color:var(--muted)}
+.photoInfo {padding:14px}
+.photoInfo p {font-size:12px;color:var(--muted)}
 
 /* MISC */
-details{
- border:1px solid var(--line);border-radius:12px;
- padding:13px;margin-top:15px
+details {
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:13px;
+  margin-top:15px;
 }
-summary{cursor:pointer;font-weight:700}
-footer{
- text-align:center;padding:28px 0;
- color:var(--muted);font-size:12px
+summary {cursor:pointer;font-weight:700}
+footer {
+  text-align:center;
+  padding:28px 0;
+  color:var(--muted);
+  font-size:12px;
 }
-@media(max-width:1100px){
- .chartgrid{grid-template-columns:repeat(2,1fr)}
- .metrics{grid-template-columns:repeat(2,1fr)}
+@media(max-width:1100px) {
+  .chartgrid {grid-template-columns:repeat(2,1fr)}
+  .metrics,.evidenceStats {grid-template-columns:repeat(2,1fr)}
 }
-@media(max-width:850px){
- .two-col,.gallery{grid-template-columns:1fr}
- .hero{padding:25px;min-height:270px}
- .chartgrid{grid-template-columns:1fr}
+@media(max-width:850px) {
+  .two-col,.gallery,.comparisonGrid,.reasonGrid {
+    grid-template-columns:1fr;
+  }
+  .hero {padding:25px;min-height:270px}
+  .chartgrid {grid-template-columns:1fr}
 }
-@media(max-width:600px){
- .app{padding:10px}
- .panel{padding:15px}
- .actions,.evidenceGrid{grid-template-columns:1fr}
- .crop{grid-template-columns:85px minmax(0,1fr)}
- .cropPhoto{width:85px;height:105px}
- .bumiCompose{flex-direction:column;align-items:stretch}
- .bumiBubble{max-width:97%}
- #map,#farm3d{height:320px}
+@media(max-width:600px) {
+  .app {padding:10px}
+  .panel {padding:15px}
+  .actions,.evidenceGrid {grid-template-columns:1fr}
+  .crop {grid-template-columns:85px minmax(0,1fr)}
+  .cropPhoto {width:85px;height:105px}
+  #map,#farm3d {height:320px}
 }
 </style>
 </head>
@@ -386,374 +522,388 @@ footer{
 <div class="app">
 
 <header>
- <div>
-  <div class="logo">BUMI <span>SHIFT</span></div>
-  <div class="subtitle">Rethink your crops. Restore your soil.</div>
- </div>
- <span class="pill">NASA Earth observation-powered planning</span>
+  <div>
+    <div class="logo">BUMI <span>SHIFT</span></div>
+    <div class="subtitle">Rethink your crops. Restore your soil.</div>
+  </div>
+  <span class="pill">NASA Earth observation-powered planning</span>
 </header>
 
 <section class="hero">
- <div class="heroOrb"></div>
- <div class="heroContent">
-  <div class="eyebrow">YOUR FARM, YOUR NEXT MOVE</div>
-  <h1>Discover what your land could grow next.</h1>
-  <p>
-   Explore crop options, compare farming shifts and
-   plan healthier growing cycles using environmental
-   evidence from your location.
-  </p>
-  <div class="heroNote">
-   EARTH DATA · FARMING DECISIONS · SOIL RESILIENCE
+  <div class="heroOrb"></div>
+  <div class="heroContent">
+    <div class="eyebrow">YOUR FARM, YOUR NEXT MOVE</div>
+    <h1>Discover what your land could grow next.</h1>
+    <p>
+      Explore crop options, compare farming shifts and
+      plan healthier growing cycles using environmental
+      evidence from your location.
+    </p>
+    <div class="heroNote">
+      EARTH DATA · FARMING DECISIONS · SOIL RESILIENCE
+    </div>
   </div>
- </div>
 </section>
 
 <section class="panel section">
- <div class="head">
-  <div>
-   <div class="eyebrow">GET STARTED</div>
-   <h2>Where is your farm?</h2>
+  <div class="head">
+    <div>
+      <div class="eyebrow">GET STARTED</div>
+      <h2>Where is your farm?</h2>
+    </div>
+    <span class="pill">Sarawak pilot</span>
   </div>
-  <span class="pill">Sarawak pilot</span>
- </div>
 
- <div class="location">
-  <input id="place" value="Samarahan, Sarawak"
-   placeholder="Search a Sarawak location">
-  <button id="searchBtn">Find Location</button>
+  <div class="location">
+    <input id="place" value="Samarahan, Sarawak"
+      placeholder="Search a Sarawak location">
+    <button id="searchBtn">Find Location</button>
 
-  <select id="priority" aria-label="Farming priority">
-   <option value="soil">Soil health</option>
-   <option value="water">Water management</option>
-   <option value="resilience">Climate resilience</option>
-   <option value="income">Income opportunities</option>
-  </select>
+    <select id="priority" aria-label="Farming priority">
+      <option value="soil">Soil health</option>
+      <option value="water">Water management</option>
+      <option value="resilience">Climate resilience</option>
+      <option value="income">Income opportunities</option>
+    </select>
 
-  <select id="baseline" aria-label="Current crop">
-   <option value="rice">Current crop: Rice</option>
-   <option value="maize">Current crop: Maize</option>
-   <option value="mung_bean">Current crop: Mung bean</option>
-   <option value="groundnut">Current crop: Groundnut</option>
-   <option value="soybean">Current crop: Soybean</option>
-   <option value="sweet_potato">Current crop: Sweet potato</option>
-  </select>
+    <select id="baseline" aria-label="Current crop">
+      <option value="rice">Current crop: Rice</option>
+      <option value="maize">Current crop: Maize</option>
+      <option value="mung_bean">Current crop: Mung bean</option>
+      <option value="groundnut">Current crop: Groundnut</option>
+      <option value="soybean">Current crop: Soybean</option>
+      <option value="sweet_potato">Current crop: Sweet potato</option>
+    </select>
 
-  <button id="analyzeBtn">Analyze My Farm</button>
- </div>
+    <button id="analyzeBtn">Analyze My Farm</button>
+  </div>
 
- <div id="priorityExplanation"
-  class="priorityExplanation"></div>
+  <div id="priorityExplanation" class="priorityExplanation"></div>
 
- <p id="locationLabel" class="status">
-  Selected: 1.4600° N, 110.4900° E
- </p>
- <p id="status" class="status">
-  Choose your location and click Analyze My Farm.
- </p>
+  <p id="locationLabel" class="status">
+    Selected: 1.4600° N, 110.4900° E
+  </p>
+  <p id="status" class="status">
+    Choose your location and click Analyze My Farm.
+  </p>
 </section>
 
 <div class="two-col section">
 
-<section class="panel">
- <div class="eyebrow">EXPLORE YOUR LAND</div>
- <h2>See your farm from a new perspective</h2>
+  <section class="panel">
+    <div class="eyebrow">EXPLORE YOUR LAND</div>
+    <h2>See your farm from a new perspective</h2>
 
- <div class="mapControls">
-  <button id="satBtn" class="active">Satellite View</button>
-  <button id="streetBtn">Map View</button>
-  <button id="farmBtn">3D Farm</button>
- </div>
+    <div class="mapControls">
+      <button id="satBtn" class="active">Satellite View</button>
+      <button id="streetBtn">Map View</button>
+      <button id="farmBtn">3D Farm</button>
+    </div>
 
- <div id="map"></div>
+    <div id="map"></div>
 
- <div id="farm3d" class="hidden">
-  <div class="farmLabel">
-   <strong id="fieldCrop">Rice</strong>
-   <small id="fieldPeriod">Crop preview</small>
-  </div>
- </div>
+    <div id="farm3d" class="hidden">
+      <div class="farmLabel">
+        <strong id="fieldCrop">Rice</strong>
+        <small id="fieldPeriod">Crop preview</small>
+      </div>
+    </div>
 
- <div id="rotationControls" class="hidden">
-  <p class="sub">Select a crop in the rotation:</p>
-  <div id="timeline" class="timeline"></div>
-  <button id="resetCamera">Reset 3D View</button>
- </div>
+    <div id="rotationControls" class="hidden">
+      <p class="sub">Select a crop in the rotation:</p>
+      <div id="timeline" class="timeline"></div>
+      <button id="resetCamera">Reset 3D View</button>
+    </div>
 
- <p id="farmNote" class="status">
-  Select a location or explore a rotation strategy.
- </p>
-</section>
+    <p id="farmNote" class="status">
+      Select a location or explore a rotation strategy.
+    </p>
+  </section>
 
-<section class="panel">
- <div class="eyebrow">YOUR FARMING SHIFTS</div>
- <h2>Explore what you could change</h2>
- <p class="sub">
-  Discover possible changes in crop selection,
-  planting schedules and soil management.
- </p>
- <div id="shiftList">
-  <p class="status">Analyze your farm to explore options.</p>
- </div>
-</section>
+  <section class="panel">
+    <div class="eyebrow">YOUR FARMING SHIFTS</div>
+    <h2>Explore what you could change</h2>
+    <p class="sub">
+      Discover possible changes in crop selection,
+      planting schedules and soil management.
+    </p>
+    <div id="shiftList">
+      <p class="status">Analyze your farm to explore options.</p>
+    </div>
+  </section>
 
 </div>
 
 <section class="panel section">
- <div class="head">
-  <div>
-   <div class="eyebrow">YOUR GROWING CONDITIONS</div>
-   <h2>Understand your environment</h2>
-   <p class="sub">
-    Explore historical NASA POWER environmental observations.
-   </p>
+  <div class="head">
+    <div>
+      <div class="eyebrow">YOUR GROWING CONDITIONS</div>
+      <h2>Understand your environment</h2>
+      <p class="sub">
+        Explore historical NASA POWER environmental observations.
+      </p>
+    </div>
+    <span class="pill">NASA POWER · 10-year reference</span>
   </div>
-  <span class="pill">NASA POWER · 10-year reference</span>
- </div>
 
- <div id="metrics" class="metrics"></div>
+  <div id="metrics" class="metrics"></div>
 
- <div class="chartgrid">
-  <div class="chartcard">
-   <h3>Monthly Rainfall</h3>
-   <div class="chartbox"><canvas id="rainChart"></canvas></div>
+  <div class="chartgrid">
+    <div class="chartcard">
+      <h3>Monthly Rainfall</h3>
+      <div class="chartbox"><canvas id="rainChart"></canvas></div>
+    </div>
+    <div class="chartcard">
+      <h3>Mean Temperature</h3>
+      <div class="chartbox"><canvas id="tempChart"></canvas></div>
+    </div>
+    <div class="chartcard">
+      <h3>Maximum &amp; Minimum Temperature</h3>
+      <div class="chartbox"><canvas id="rangeChart"></canvas></div>
+    </div>
+    <div class="chartcard">
+      <h3>Relative Humidity</h3>
+      <div class="chartbox"><canvas id="humidityChart"></canvas></div>
+    </div>
+    <div class="chartcard">
+      <h3>Solar Irradiation</h3>
+      <div class="chartbox"><canvas id="solarChart"></canvas></div>
+    </div>
+    <div class="chartcard">
+      <h3>Wind Speed</h3>
+      <div class="chartbox"><canvas id="windChart"></canvas></div>
+    </div>
+    <div class="chartcard">
+      <h3>Atmospheric Pressure</h3>
+      <div class="chartbox"><canvas id="pressureChart"></canvas></div>
+    </div>
+    <div class="chartcard">
+      <h3>Annual Rainfall Variability</h3>
+      <div class="chartbox"><canvas id="annualRainChart"></canvas></div>
+    </div>
+    <div class="chartcard">
+      <h3>Annual Temperature Trend</h3>
+      <div class="chartbox"><canvas id="annualTempChart"></canvas></div>
+    </div>
   </div>
-  <div class="chartcard">
-   <h3>Mean Temperature</h3>
-   <div class="chartbox"><canvas id="tempChart"></canvas></div>
-  </div>
-  <div class="chartcard">
-   <h3>Maximum &amp; Minimum Temperature</h3>
-   <div class="chartbox"><canvas id="rangeChart"></canvas></div>
-  </div>
-  <div class="chartcard">
-   <h3>Relative Humidity</h3>
-   <div class="chartbox"><canvas id="humidityChart"></canvas></div>
-  </div>
-  <div class="chartcard">
-   <h3>Solar Irradiation</h3>
-   <div class="chartbox"><canvas id="solarChart"></canvas></div>
-  </div>
-  <div class="chartcard">
-   <h3>Wind Speed</h3>
-   <div class="chartbox"><canvas id="windChart"></canvas></div>
-  </div>
-  <div class="chartcard">
-   <h3>Atmospheric Pressure</h3>
-   <div class="chartbox"><canvas id="pressureChart"></canvas></div>
-  </div>
-  <div class="chartcard">
-   <h3>Annual Rainfall Variability</h3>
-   <div class="chartbox"><canvas id="annualRainChart"></canvas></div>
-  </div>
-  <div class="chartcard">
-   <h3>Annual Temperature Trend</h3>
-   <div class="chartbox"><canvas id="annualTempChart"></canvas></div>
-  </div>
- </div>
 
- <p id="climatePeriod" class="status"></p>
+  <p id="climatePeriod" class="status"></p>
 
- <details>
-  <summary>Explore NASA Data &amp; Sources</summary>
+  <details>
+    <summary>Explore NASA Data &amp; Sources</summary>
+    <p class="sub">
+      Historical environmental estimates are supplied by NASA POWER.
+    </p>
+  </details>
+</section>
+
+<section class="panel section">
+  <div class="eyebrow">FARMING LANDSCAPES</div>
+  <h2>Explore agricultural landscapes</h2>
   <p class="sub">
-   Historical environmental estimates are supplied by NASA POWER.
+    Real agricultural photography for visual context.
   </p>
- </details>
-</section>
 
-<section class="panel section">
- <div class="eyebrow">FARMING LANDSCAPES</div>
- <h2>Explore agricultural landscapes</h2>
- <p class="sub">
-  Real agricultural photographs for visual context.
- </p>
-
- <div class="gallery" style="margin-top:16px">
-  <div class="photoCard">
-   <img
-    src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1000&q=85"
-    alt="Agricultural landscape" loading="lazy">
-   <div class="photoInfo">
-    <strong>Growing landscapes</strong>
-    <p>Real agricultural landscape photography.</p>
-   </div>
+  <div class="gallery" style="margin-top:16px">
+    <div class="photoCard">
+      <img
+        src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1000&q=85"
+        alt="Agricultural landscape" loading="lazy">
+      <div class="photoInfo">
+        <strong>Growing landscapes</strong>
+        <p>Real agricultural landscape photography.</p>
+      </div>
+    </div>
+    <div class="photoCard">
+      <img
+        src="https://images.unsplash.com/photo-1472396961693-142e6e269027?auto=format&fit=crop&w=1000&q=85"
+        alt="Natural landscape" loading="lazy">
+      <div class="photoInfo">
+        <strong>Land and environment</strong>
+        <p>Natural landscape photography.</p>
+      </div>
+    </div>
+    <div class="photoCard">
+      <img
+        src="https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=1000&q=85"
+        alt="Agricultural crops" loading="lazy">
+      <div class="photoInfo">
+        <strong>Crop diversity</strong>
+        <p>Real crop photography.</p>
+      </div>
+    </div>
   </div>
-  <div class="photoCard">
-   <img
-    src="https://images.unsplash.com/photo-1472396961693-142e6e269027?auto=format&fit=crop&w=1000&q=85"
-    alt="Natural landscape" loading="lazy">
-   <div class="photoInfo">
-    <strong>Land and environment</strong>
-    <p>Natural landscape photography.</p>
-   </div>
-  </div>
-  <div class="photoCard">
-   <img
-    src="https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=1000&q=85"
-    alt="Agricultural crops" loading="lazy">
-   <div class="photoInfo">
-    <strong>Crop diversity</strong>
-    <p>Real crop photography.</p>
-   </div>
-  </div>
- </div>
 </section>
 
 <div class="two-col section">
 
-<section class="panel">
- <div class="eyebrow">CROP RECOMMENDATIONS</div>
- <h2>Find crops that fit your land</h2>
- <p class="sub">
-  Explore climate compatibility, planting windows
-  and supporting environmental evidence.
- </p>
+  <section class="panel">
+    <div class="eyebrow">CROP RECOMMENDATIONS</div>
+    <h2>Find crops that fit your land</h2>
+    <p class="sub">
+      Explore climate compatibility, planting windows
+      and supporting environmental evidence.
+    </p>
 
- <div id="cropList">
-  <p class="status">Your crop shortlist will appear here.</p>
- </div>
-</section>
+    <div id="cropList">
+      <p class="status">Your crop shortlist will appear here.</p>
+    </div>
+  </section>
 
-<section class="panel">
- <div class="eyebrow">CROP ROTATION</div>
- <h2>Build your crop rotation</h2>
- <p class="sub">
-  Compare your baseline with alternative crop sequences.
- </p>
- <div id="rotationList">
-  <p class="status">Rotation options will appear here.</p>
- </div>
- <div id="strategyDetails"></div>
-</section>
+  <section class="panel">
+    <div class="eyebrow">CROP ROTATION</div>
+    <h2>Build your crop rotation</h2>
+    <p class="sub">
+      Compare your baseline with alternative crop sequences.
+    </p>
+    <div id="rotationList">
+      <p class="status">Rotation options will appear here.</p>
+    </div>
+    <div id="strategyDetails"></div>
+  </section>
 
 </div>
 
-<section class="panel section">
- <div class="eyebrow">YOUR NEXT STEPS</div>
- <h2>Your farming checklist</h2>
- <p class="sub">
-  Suggested actions based on your selected crop rotation.
- </p>
- <div id="activityList" class="actions"></div>
+<section class="panel section" id="decisionSection">
+  <div class="eyebrow">EVIDENCE-BASED FARMING DECISIONS</div>
+  <h2>Why Make This SHIFT?</h2>
+  <p class="sub">
+    Compare your existing farming reference with an alternative
+    using NASA environmental observations, crop characteristics
+    and potential soil-management implications.
+  </p>
+
+  <div id="decisionEvidence">
+    <p class="status">
+      Analyze your farm and select a rotation to explore
+      the evidence behind your farming SHIFT.
+    </p>
+  </div>
 </section>
 
 <section class="panel section">
- <div class="eyebrow">YOUR FARMING COMPANION</div>
- <h2>Ask BUMI</h2>
- <p class="sub">
-  Ask about crop rotations, soil health, growing conditions
-  and possible farming improvements.
- </p>
-
- <div id="bumiChat" role="log" aria-live="polite"></div>
-
- <div class="bumiCompose">
-  <textarea id="bumiQuestion"
-   placeholder="Why might banana be suitable for my farm?"></textarea>
-  <button id="bumiSend" type="button">Send</button>
- </div>
-
- <div class="bumiFooter">
-  <span id="bumiStatus">Powered by Gemini</span>
-  <button id="bumiClear" type="button">New conversation</button>
- </div>
+  <div class="eyebrow">YOUR NEXT STEPS</div>
+  <h2>Your farming checklist</h2>
+  <p class="sub">
+    Suggested actions based on your selected rotation,
+    environmental conditions and management considerations.
+  </p>
+  <div id="activityList" class="actions"></div>
 </section>
 
 <footer>
- BUMI SHIFT · Environmental data: NASA POWER
+  BUMI SHIFT · Environmental data: NASA POWER
 </footer>
+
 </div>
 
 <script>
-window.addEventListener("DOMContentLoaded",()=>{
+window.addEventListener("DOMContentLoaded", () => {
 "use strict";
 
-const $=id=>document.getElementById(id);
-const months=[
- "Jan","Feb","Mar","Apr","May","Jun",
- "Jul","Aug","Sep","Oct","Nov","Dec"
+const $ = id => document.getElementById(id);
+const months = [
+  "Jan","Feb","Mar","Apr","May","Jun",
+  "Jul","Aug","Sep","Oct","Nov","Dec"
 ];
 
-let coords={latitude:1.46,longitude:110.49};
-let assessment=null;
-let climateData=null;
-let selectedStrategy=null;
-let selectedCrop=null;
-let version=0;
-const chartInstances={};
+let coords = {latitude:1.46,longitude:110.49};
+let assessment = null;
+let climateData = null;
+let selectedStrategy = null;
+let selectedCrop = null;
+let version = 0;
+const chartInstances = {};
 
-window.BUMIContext={
- ...coords,
- selected_crop:null,
- selected_rotation:null
+window.BUMIContext = {
+  ...coords,
+  selected_crop:null,
+  selected_rotation:null
 };
 
-const put=(id,value)=>$(id).textContent=value;
-
-function fmt(value,suffix=""){
- return value==null||!Number.isFinite(Number(value))
-  ?"—"
-  :Number(value).toLocaleString("en-MY",{
-    maximumFractionDigits:1
-   })+suffix;
-}
-
-function el(tag,cls="",value){
- const e=document.createElement(tag);
- if(cls)e.className=cls;
- if(value!==undefined)e.textContent=value;
- return e;
-}
-
-function paragraph(parent,text){
- parent.append(el("p","",text));
-}
-
-function bullets(parent,items){
- const ul=el("ul");
- (items||[]).forEach(item=>
-  ul.append(el("li","",String(item)))
- );
- parent.append(ul);
-}
-
-function clear(id){$(id).replaceChildren()}
-
-function isSarawak(lat,lon){
- return lat>=0.5&&lat<=5.1&&lon>=109.5&&lon<=115.5;
-}
-
-/* PRIORITY EXPLANATION */
-
-const priorityInfo={
- soil:{
-  title:"Your goal: Healthier soil",
-  text:"Compare crop-family diversity, soil-cover opportunities and climate compatibility."
- },
- water:{
-  title:"Your goal: Smarter water management",
-  text:"Explore rainfall compatibility and possible drainage or water-management concerns."
- },
- resilience:{
-  title:"Your goal: Climate resilience",
-  text:"Give greater weight to historical climate compatibility when comparing rotations."
- },
- income:{
-  title:"Your goal: More income opportunities",
-  text:"Explore alternative crops. Prices, costs and profits are not yet quantitatively assessed."
- }
+const put = (id,value) => {
+  const node = $(id);
+  if(node) node.textContent = value;
 };
 
-function updatePriority(){
- const info=priorityInfo[$("priority").value];
- const root=$("priorityExplanation");
- root.replaceChildren();
- root.append(
-  el("strong","",info.title),
-  el("p","",info.text)
- );
+function valid(value) {
+  return typeof value === "number" && Number.isFinite(value);
 }
+
+function fmt(value,suffix="") {
+  return !valid(value)
+    ? "—"
+    : value.toLocaleString("en-MY",{
+        maximumFractionDigits:1
+      }) + suffix;
+}
+
+function el(tag,cls="",value) {
+  const e = document.createElement(tag);
+  if(cls) e.className = cls;
+  if(value !== undefined) e.textContent = value;
+  return e;
+}
+
+function paragraph(parent,text) {
+  parent.append(el("p","",String(text)));
+}
+
+function bullets(parent,items) {
+  const ul = el("ul");
+  (items || []).forEach(item => {
+    ul.append(el("li","",String(item)));
+  });
+  parent.append(ul);
+}
+
+function clear(id) {
+  $(id)?.replaceChildren();
+}
+
+function average(values) {
+  const nums = values.filter(valid);
+  return nums.length
+    ? nums.reduce((a,b)=>a+b,0)/nums.length
+    : null;
+}
+
+function isSarawak(lat,lon) {
+  return lat>=0.5 && lat<=5.1 &&
+         lon>=109.5 && lon<=115.5;
+}
+
+/* FARM PRIORITIES */
+
+const priorityInfo = {
+  soil:{
+    title:"Your goal: Healthier soil",
+    text:"Compare crop-family diversity, ground-cover opportunities and climate compatibility."
+  },
+  water:{
+    title:"Your goal: Smarter water management",
+    text:"Explore rainfall compatibility and potential drainage or water-management concerns."
+  },
+  resilience:{
+    title:"Your goal: Climate resilience",
+    text:"Prioritize historical climate compatibility when comparing alternative rotations."
+  },
+  income:{
+    title:"Your goal: More income opportunities",
+    text:"Explore alternative crops. Market prices, costs and profits are not yet quantitatively assessed."
+  }
+};
+
+function updatePriority() {
+  const info = priorityInfo[$("priority").value];
+  const root = $("priorityExplanation");
+  root.replaceChildren();
+  root.append(
+    el("strong","",info.title),
+    el("p","",info.text)
+  );
+}
+
 $("priority").addEventListener("change",updatePriority);
 updatePriority();
 
@@ -761,1087 +911,1087 @@ updatePriority();
 
 let map=null,marker=null,street=null,satellite=null;
 
-if(window.L){
- map=L.map("map").setView([1.46,110.49],11);
+if(window.L) {
+  map = L.map("map").setView([1.46,110.49],11);
 
- street=L.tileLayer(
-  "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-  {maxZoom:19,attribution:"© OpenStreetMap"}
- );
-
- satellite=L.tileLayer(
-  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-  {maxZoom:19,attribution:"Imagery © Esri"}
- );
-
- satellite.addTo(map);
- marker=L.marker([1.46,110.49]).addTo(map);
-
- map.on("click",e=>choose(e.latlng.lat,e.latlng.lng));
-}
-
-function mapMode(mode){
- $("map").classList.remove("hidden");
- $("farm3d").classList.add("hidden");
- $("rotationControls").classList.add("hidden");
-
- $("satBtn").classList.toggle("active",mode==="satellite");
- $("streetBtn").classList.toggle("active",mode==="street");
- $("farmBtn").classList.remove("active");
-
- if(map){
-  map.removeLayer(street);
-  map.removeLayer(satellite);
-  (mode==="satellite"?satellite:street).addTo(map);
-  setTimeout(()=>map.invalidateSize(),100);
- }
-}
-
-function farmMode(){
- $("map").classList.add("hidden");
- $("farm3d").classList.remove("hidden");
- $("rotationControls").classList.remove("hidden");
-
- $("satBtn").classList.remove("active");
- $("streetBtn").classList.remove("active");
- $("farmBtn").classList.add("active");
-
- window.BUMIFarm3D?.resize();
-}
-
-$("satBtn").onclick=()=>mapMode("satellite");
-$("streetBtn").onclick=()=>mapMode("street");
-$("farmBtn").onclick=farmMode;
-$("resetCamera").onclick=()=>
- window.BUMIFarm3D?.resetCamera();
-
-function choose(lat,lon){
- if(!isSarawak(lat,lon)){
-  put("status","Please select a location within Sarawak.");
-  return;
- }
-
- coords={latitude:lat,longitude:lon};
- Object.assign(window.BUMIContext,{
-  latitude:lat,longitude:lon,
-  selected_crop:null,selected_rotation:null
- });
-
- marker?.setLatLng([lat,lon]);
- map?.setView([lat,lon],12);
-
- version++;
- assessment=null;
- climateData=null;
- selectedStrategy=null;
- selectedCrop=null;
-
- [
-  "cropList","rotationList","strategyDetails",
-  "shiftList","activityList","metrics"
- ].forEach(clear);
-
- Object.values(chartInstances).forEach(c=>c.destroy());
- Object.keys(chartInstances).forEach(k=>
-  delete chartInstances[k]
- );
-
- put("locationLabel",
-  `Selected: ${lat.toFixed(4)}° N, ${lon.toFixed(4)}° E`
- );
- put("status","Location updated. Analyze to refresh results.");
-}
-
-$("searchBtn").onclick=async()=>{
- const query=$("place").value.trim();
- if(!query)return;
-
- $("searchBtn").disabled=true;
-
- try{
-  const url="https://nominatim.openstreetmap.org/search?"
-   +new URLSearchParams({
-    q:query+", Sarawak, Malaysia",
-    format:"json",limit:5
-   });
-
-  const response=await fetch(url);
-  if(!response.ok)throw Error("Location search failed");
-
-  const places=await response.json();
-  const match=places.find(p=>
-   isSarawak(Number(p.lat),Number(p.lon))
+  street = L.tileLayer(
+    "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    {maxZoom:19,attribution:"© OpenStreetMap contributors"}
   );
 
-  if(!match)throw Error("Location not found");
-  choose(Number(match.lat),Number(match.lon));
- }catch(e){
-  put("status","Please try another Sarawak location.");
- }finally{
-  $("searchBtn").disabled=false;
- }
+  satellite = L.tileLayer(
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    {maxZoom:19,attribution:"Imagery © Esri and providers"}
+  );
+
+  satellite.addTo(map);
+  marker = L.marker([1.46,110.49]).addTo(map);
+
+  map.on("click",e => choose(e.latlng.lat,e.latlng.lng));
+}
+
+function mapMode(mode) {
+  $("map").classList.remove("hidden");
+  $("farm3d").classList.add("hidden");
+  $("rotationControls").classList.add("hidden");
+
+  $("satBtn").classList.toggle("active",mode==="satellite");
+  $("streetBtn").classList.toggle("active",mode==="street");
+  $("farmBtn").classList.remove("active");
+
+  if(map) {
+    map.removeLayer(street);
+    map.removeLayer(satellite);
+    (mode==="satellite" ? satellite : street).addTo(map);
+    setTimeout(()=>map.invalidateSize(),100);
+  }
+}
+
+function farmMode() {
+  $("map").classList.add("hidden");
+  $("farm3d").classList.remove("hidden");
+  $("rotationControls").classList.remove("hidden");
+
+  $("satBtn").classList.remove("active");
+  $("streetBtn").classList.remove("active");
+  $("farmBtn").classList.add("active");
+
+  window.BUMIFarm3D?.resize();
+}
+
+$("satBtn").onclick = () => mapMode("satellite");
+$("streetBtn").onclick = () => mapMode("street");
+$("farmBtn").onclick = farmMode;
+$("resetCamera").onclick =
+  () => window.BUMIFarm3D?.resetCamera();
+
+function choose(lat,lon) {
+  if(!isSarawak(lat,lon)) {
+    put("status","Please select a location within Sarawak.");
+    return;
+  }
+
+  coords = {latitude:lat,longitude:lon};
+
+  Object.assign(window.BUMIContext,{
+    latitude:lat,
+    longitude:lon,
+    selected_crop:null,
+    selected_rotation:null
+  });
+
+  marker?.setLatLng([lat,lon]);
+  map?.setView([lat,lon],12);
+
+  version++;
+  assessment=null;
+  climateData=null;
+  selectedStrategy=null;
+  selectedCrop=null;
+
+  [
+    "cropList","rotationList","strategyDetails",
+    "shiftList","activityList","metrics","decisionEvidence"
+  ].forEach(clear);
+
+  Object.values(chartInstances).forEach(c=>c.destroy());
+  Object.keys(chartInstances).forEach(k=>delete chartInstances[k]);
+
+  put("locationLabel",
+    `Selected: ${lat.toFixed(4)}° N, ${lon.toFixed(4)}° E`
+  );
+  put("status","Location updated. Analyze to refresh results.");
+}
+
+$("searchBtn").onclick = async () => {
+  const query = $("place").value.trim();
+  if(!query)return;
+
+  $("searchBtn").disabled=true;
+
+  try {
+    const url = "https://nominatim.openstreetmap.org/search?"
+      + new URLSearchParams({
+        q:query+", Sarawak, Malaysia",
+        format:"json",
+        limit:5
+      });
+
+    const response = await fetch(url);
+    if(!response.ok)throw Error("Location search failed");
+
+    const places = await response.json();
+    const match = places.find(p=>
+      isSarawak(Number(p.lat),Number(p.lon))
+    );
+
+    if(!match)throw Error("Location not found");
+    choose(Number(match.lat),Number(match.lon));
+  } catch(e) {
+    put("status","Please try another Sarawak location.");
+  } finally {
+    $("searchBtn").disabled=false;
+  }
 };
 
 /* API */
 
-async function api(path,params){
- const response=await fetch(
-  path+"?"+new URLSearchParams(params)
- );
- const data=await response.json().catch(()=>({}));
+async function api(path,params) {
+  const response = await fetch(
+    path+"?"+new URLSearchParams(params)
+  );
+  const data = await response.json().catch(()=>({}));
 
- if(!response.ok){
-  throw Error("Request could not be completed");
- }
- return data;
+  if(!response.ok) {
+    throw Error("Request could not be completed");
+  }
+  return data;
 }
 
 /* NASA CHARTS */
 
-function chart(id,type,labels,datasets,yTitle){
- chartInstances[id]?.destroy();
- if(!window.Chart)return;
+function chart(id,type,labels,datasets,yTitle) {
+  chartInstances[id]?.destroy();
+  if(!window.Chart)return;
 
- chartInstances[id]=new Chart($(id),{
-  type,
-  data:{labels,datasets},
-  options:{
-   responsive:true,
-   maintainAspectRatio:false,
-   interaction:{mode:"index",intersect:false},
-   plugins:{
-    legend:{labels:{color:"#10294d"}}
-   },
-   scales:{
-    x:{
-     ticks:{color:"#526a87"},
-     grid:{display:false}
-    },
-    y:{
-     ticks:{color:"#526a87"},
-     title:{
-      display:true,text:yTitle,color:"#526a87"
-     }
+  chartInstances[id] = new Chart($(id),{
+    type,
+    data:{labels,datasets},
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      interaction:{mode:"index",intersect:false},
+      plugins:{
+        legend:{labels:{color:"#10294d"}}
+      },
+      scales:{
+        x:{
+          ticks:{color:"#526a87"},
+          grid:{display:false}
+        },
+        y:{
+          ticks:{color:"#526a87"},
+          title:{
+            display:true,
+            text:yTitle,
+            color:"#526a87"
+          }
+        }
+      }
     }
-   }
-  }
- });
+  });
 }
 
-function dataset(label,data,color,type="line"){
- return{
-  label,data,
-  borderColor:color,
-  backgroundColor:color,
-  borderWidth:2,
-  tension:.3,
-  pointRadius:3,
-  borderRadius:5,
-  spanGaps:false,
-  type
- };
+function dataset(label,data,color,type="line") {
+  return {
+    label,data,
+    borderColor:color,
+    backgroundColor:color,
+    borderWidth:2,
+    tension:.3,
+    pointRadius:3,
+    spanGaps:false,
+    type
+  };
 }
 
-function renderNASA(h){
- climateData=h;
- const s=h.summary||{};
- const monthly=h.monthly_climatology||h.monthly||[];
- const annual=h.annual||[];
+function renderNASA(h) {
+  climateData=h;
 
- const ordered=months.map((_,i)=>
-  monthly.find(r=>Number(r.month)===i+1)||{}
- );
+  const s=h.summary||{};
+  const monthly=h.monthly_climatology||h.monthly||[];
+  const annual=h.annual||[];
 
- const vals=key=>ordered.map(r=>r[key]??null);
- const years=annual.map(r=>String(r.year));
-
- const root=$("metrics");
- root.replaceChildren();
-
- const indicators=[
-  ["Annual rainfall",s.mean_annual_rainfall_mm," mm"],
-  ["Mean temperature",s.mean_temperature_c??s.mean_annual_temperature_c," °C"],
-  ["Maximum temperature",s.mean_maximum_temperature_c," °C"],
-  ["Minimum temperature",s.mean_minimum_temperature_c," °C"],
-  ["Relative humidity",s.mean_humidity_percent," %"],
-  ["Solar irradiation",s.mean_solar_kwh_m2_day," kWh/m²/day"],
-  ["Wind speed",s.mean_wind_speed_m_s," m/s"],
-  ["Atmospheric pressure",s.mean_pressure_kpa," kPa"]
- ];
-
- indicators.forEach(([name,value,unit])=>{
-  if(value==null||!Number.isFinite(Number(value)))return;
-  const card=el("div","metric");
-  card.append(
-   el("small","",name),
-   el("strong","",fmt(value,unit))
+  const ordered=months.map((_,i)=>
+    monthly.find(r=>Number(r.month)===i+1)||{}
   );
-  root.append(card);
- });
 
- chart("rainChart","bar",months,[
-  dataset("Rainfall",vals("rainfall_mm"),"#216ad6","bar")
- ],"mm");
+  const vals=key=>ordered.map(r=>r[key]??null);
+  const years=annual.map(r=>String(r.year));
 
- chart("tempChart","line",months,[
-  dataset("Mean temperature",vals("temperature_c"),"#e9a12a")
- ],"°C");
+  const root=$("metrics");
+  root.replaceChildren();
 
- chart("rangeChart","line",months,[
-  dataset("Maximum",vals("maximum_temperature_c"),"#e97c6e"),
-  dataset("Minimum",vals("minimum_temperature_c"),"#7658cb")
- ],"°C");
+  const indicators=[
+    ["Annual rainfall",s.mean_annual_rainfall_mm," mm"],
+    ["Mean temperature",s.mean_temperature_c??s.mean_annual_temperature_c," °C"],
+    ["Maximum temperature",s.mean_maximum_temperature_c," °C"],
+    ["Minimum temperature",s.mean_minimum_temperature_c," °C"],
+    ["Relative humidity",s.mean_humidity_percent," %"],
+    ["Solar irradiation",s.mean_solar_kwh_m2_day," kWh/m²/day"],
+    ["Wind speed",s.mean_wind_speed_m_s," m/s"],
+    ["Atmospheric pressure",s.mean_pressure_kpa," kPa"]
+  ];
 
- chart("humidityChart","line",months,[
-  dataset("Humidity",vals("humidity_percent"),"#079f9b")
- ],"%");
+  indicators.forEach(([name,value,unit])=>{
+    if(!valid(value))return;
+    const card=el("div","metric");
+    card.append(
+      el("small","",name),
+      el("strong","",fmt(value,unit))
+    );
+    root.append(card);
+  });
 
- chart("solarChart","bar",months,[
-  dataset("Solar irradiation",vals("solar_kwh_m2_day"),"#e9a12a","bar")
- ],"kWh/m²/day");
+  chart("rainChart","bar",months,[
+    dataset("Rainfall",vals("rainfall_mm"),"#216ad6","bar")
+  ],"mm");
 
- chart("windChart","line",months,[
-  dataset("Wind speed",vals("wind_speed_m_s"),"#216ad6")
- ],"m/s");
+  chart("tempChart","line",months,[
+    dataset("Mean temperature",vals("temperature_c"),"#e9a12a")
+  ],"°C");
 
- chart("pressureChart","line",months,[
-  dataset("Surface pressure",vals("pressure_kpa"),"#7658cb")
- ],"kPa");
+  chart("rangeChart","line",months,[
+    dataset("Maximum",vals("maximum_temperature_c"),"#e97c6e"),
+    dataset("Minimum",vals("minimum_temperature_c"),"#7658cb")
+  ],"°C");
 
- chart("annualRainChart","bar",years,[
-  dataset("Annual rainfall",
-   annual.map(r=>r.rainfall_mm??null),
-   "#216ad6","bar")
- ],"mm");
+  chart("humidityChart","line",months,[
+    dataset("Humidity",vals("humidity_percent"),"#079f9b")
+  ],"%");
 
- chart("annualTempChart","line",years,[
-  dataset("Annual temperature",
-   annual.map(r=>r.temperature_c??r.mean_temperature_c??null),
-   "#e97c6e")
- ],"°C");
+  chart("solarChart","bar",months,[
+    dataset("Solar irradiation",vals("solar_kwh_m2_day"),"#e9a12a","bar")
+  ],"kWh/m²/day");
 
- put("climatePeriod",
-  `NASA historical reference: ${h.start_year}–${h.end_year}`
- );
+  chart("windChart","line",months,[
+    dataset("Wind speed",vals("wind_speed_m_s"),"#216ad6")
+  ],"m/s");
+
+  chart("pressureChart","line",months,[
+    dataset("Surface pressure",vals("pressure_kpa"),"#7658cb")
+  ],"kPa");
+
+  chart("annualRainChart","bar",years,[
+    dataset("Annual rainfall",
+      annual.map(r=>r.rainfall_mm??null),
+      "#216ad6","bar")
+  ],"mm");
+
+  chart("annualTempChart","line",years,[
+    dataset("Annual temperature",
+      annual.map(r=>r.temperature_c??r.mean_temperature_c??null),
+      "#e97c6e")
+  ],"°C");
+
+  put("climatePeriod",
+    `NASA historical reference: ${h.start_year}–${h.end_year}`
+  );
 }
 
 /* CROP PHOTOS */
 
 const cropPages={
- rice:"Rice",maize:"Maize",mung_bean:"Mung_bean",
- groundnut:"Peanut",soybean:"Soybean",
- sweet_potato:"Sweet_potato",cassava:"Cassava",
- pineapple:"Pineapple",banana:"Banana",
- coconut:"Coconut",durian:"Durian"
+  rice:"Rice",
+  maize:"Maize",
+  mung_bean:"Mung_bean",
+  groundnut:"Peanut",
+  soybean:"Soybean",
+  sweet_potato:"Sweet_potato",
+  cassava:"Cassava",
+  pineapple:"Pineapple",
+  banana:"Banana",
+  coconut:"Coconut",
+  durian:"Durian"
 };
 
 const photoCache={};
 
-async function cropPhoto(id){
- if(id in photoCache)return photoCache[id];
+async function cropPhoto(id) {
+  if(id in photoCache)return photoCache[id];
 
- try{
-  const url="https://en.wikipedia.org/w/api.php?"
-   +new URLSearchParams({
-    action:"query",titles:cropPages[id],
-    prop:"pageimages",pithumbsize:"480",
-    format:"json",origin:"*"
-   });
+  try {
+    const url="https://en.wikipedia.org/w/api.php?"
+      +new URLSearchParams({
+        action:"query",
+        titles:cropPages[id],
+        prop:"pageimages",
+        pithumbsize:"480",
+        format:"json",
+        origin:"*"
+      });
 
-  const response=await fetch(url);
-  if(!response.ok)throw Error("Photo unavailable");
+    const response=await fetch(url);
+    if(!response.ok)throw Error("Photo unavailable");
 
-  const data=await response.json();
-  const page=Object.values(data.query?.pages||{})[0];
-  photoCache[id]=page?.thumbnail?.source||null;
- }catch(e){
-  photoCache[id]=null;
- }
- return photoCache[id];
+    const data=await response.json();
+    const page=Object.values(data.query?.pages||{})[0];
+    photoCache[id]=page?.thumbnail?.source||null;
+  } catch(e) {
+    photoCache[id]=null;
+  }
+
+  return photoCache[id];
 }
 
 /* 3D FARM */
 
-function showCrop(id,name,period){
- selectedCrop=id;
- window.BUMIContext.selected_crop=id;
- put("fieldCrop",name);
- put("fieldPeriod",period);
- window.BUMIFarm3D?.showCrop(id);
+function showCrop(id,name,period) {
+  selectedCrop=id;
+  window.BUMIContext.selected_crop=id;
+
+  put("fieldCrop",name);
+  put("fieldPeriod",period);
+  window.BUMIFarm3D?.showCrop(id);
 }
 
-function showStage(index){
- if(!selectedStrategy)return;
- const s=selectedStrategy.stages?.[index];
- if(!s)return;
+function showStage(index) {
+  if(!selectedStrategy)return;
+  const s=selectedStrategy.stages?.[index];
+  if(!s)return;
 
- showCrop(
-  s.crop_id,s.crop,
-  `${s.start_month}–${s.end_month} · ${s.duration_months} months`
- );
+  showCrop(
+    s.crop_id,s.crop,
+    `${s.start_month}–${s.end_month} · ${s.duration_months} months`
+  );
 
- document.querySelectorAll("[data-stage]").forEach(b=>
-  b.classList.toggle(
-   "active",Number(b.dataset.stage)===index
-  )
- );
+  document.querySelectorAll("[data-stage]").forEach(b=>
+    b.classList.toggle(
+      "active",Number(b.dataset.stage)===index
+    )
+  );
 }
 
-function renderTimeline(strategy){
- const root=$("timeline");
- root.replaceChildren();
+function renderTimeline(strategy) {
+  const root=$("timeline");
+  root.replaceChildren();
 
- const stages=strategy.stages||
-  strategy.crops.map((name,i)=>({
-   crop:name,crop_id:strategy.crop_ids[i],
-   start_month:"Stage "+(i+1),
-   end_month:"",duration_months:""
-  }));
+  const stages=strategy.stages||
+    strategy.crops.map((name,i)=>({
+      crop:name,
+      crop_id:strategy.crop_ids[i],
+      start_month:"Stage "+(i+1),
+      end_month:"",
+      duration_months:""
+    }));
 
- selectedStrategy={...strategy,stages};
+  selectedStrategy={...strategy,stages};
 
- stages.forEach((s,i)=>{
-  const b=el("button","",`${i+1}. ${s.crop}`);
-  b.dataset.stage=i;
-  b.onclick=()=>showStage(i);
-  root.append(b);
- });
+  stages.forEach((s,i)=>{
+    const b=el("button","",`${i+1}. ${s.crop}`);
+    b.dataset.stage=i;
+    b.onclick=()=>showStage(i);
+    root.append(b);
+  });
 
- showStage(0);
+  showStage(0);
 }
 
-/* CROP-SPECIFIC MANAGEMENT */
+/* CROP MANAGEMENT KNOWLEDGE */
 
 const cropAdvice={
- rice:{
-  management:"Review water control, paddy bunds and drainage. Suitability differs between irrigated and rainfed rice systems.",
-  risks:"Prolonged inundation, flooding and inadequate water control can affect establishment and harvest.",
-  shift:"If shifting from rice to an upland crop, assess drainage, soil preparation and the feasibility of changing field water management."
- },
- maize:{
-  management:"Review drainage, nutrient supply, planting density and moisture availability during flowering.",
-  risks:"Waterlogging, excessive rainfall and nutrient losses can reduce establishment and crop performance.",
-  shift:"Consider a different crop family in the next rotation stage to diversify management and potential pest exposure."
- },
- mung_bean:{
-  management:"Check drainage, seed quality, nodulation and residue management after harvest.",
-  risks:"Excessive rainfall and saturated soils may affect establishment and disease pressure.",
-  shift:"A legume phase may contribute to nutrient cycling if nodulation and residue management are appropriate."
- },
- groundnut:{
-  management:"Check soil drainage, loose soil structure, calcium availability and pod development conditions.",
-  risks:"Waterlogging and unsuitable soil structure may affect pegging and pod development.",
-  shift:"Groundnut introduces a legume phase but requires suitable soil and harvesting conditions."
- },
- soybean:{
-  management:"Review drainage, inoculation or effective rhizobia, nutrient management and planting density.",
-  risks:"Excessive moisture, disease pressure and unsuitable photoperiod responses may limit performance.",
-  shift:"Soybean can diversify the rotation, but nitrogen benefits depend on successful nodulation and management."
- },
- sweet_potato:{
-  management:"Consider well-drained raised beds, vine establishment and management of exposed soil.",
-  risks:"Waterlogging can damage storage roots; pest pressure and soil preparation need local assessment.",
-  shift:"Moving from paddy rice to sweet potato may require drainage changes and raised-bed preparation."
- },
- cassava:{
-  management:"Review field drainage, planting-material quality, soil conservation and long growing duration.",
-  risks:"Extended field occupation, erosion on exposed slopes and root diseases require attention.",
-  shift:"Cassava is a longer-duration option rather than a direct substitute for a short seasonal rotation."
- },
- pineapple:{
-  management:"Review drainage, planting density, mulch, soil acidity and long establishment periods.",
-  risks:"Waterlogging, disease and long crop duration may complicate short rotation planning.",
-  shift:"Pineapple requires a longer-term planting plan and may not fit an annual rotation schedule."
- },
- banana:{
-  management:"Check drainage, wind exposure, planting material, disease management and nutrient supply.",
-  risks:"Waterlogging, strong winds and diseases such as Fusarium wilt require local checks.",
-  shift:"Banana is a longer-term planting decision, not simply the next short rotation stage."
- },
- coconut:{
-  management:"Assess soil depth, drainage, spacing, wind exposure and long-term maintenance.",
-  risks:"A perennial plantation requires long-term land commitment and site-specific suitability assessment.",
-  shift:"Coconut represents a land-use transition rather than a short annual crop rotation."
- },
- durian:{
-  management:"Check deep drainage, soil suitability, planting material, slope conditions and orchard management.",
-  risks:"Waterlogging and root diseases can be serious concerns; establishment and returns take years.",
-  shift:"Durian is a long-term orchard investment rather than a short seasonal rotation crop."
- }
+  rice:{
+    management:"Review paddy water control, bunds, drainage and whether the field is irrigated or rainfed.",
+    risks:"Flooding, poor water control and harvest-time rainfall can affect crop operations.",
+    shift:"Switching from paddy rice to upland crops may require major drainage and soil-preparation changes."
+  },
+  maize:{
+    management:"Check drainage, nutrient supply and moisture availability during flowering.",
+    risks:"Waterlogging, nutrient losses and pests require local monitoring.",
+    shift:"Alternating with another crop family may diversify management and pest exposure."
+  },
+  mung_bean:{
+    management:"Check drainage, nodulation, seed quality and residue handling.",
+    risks:"Heavy rainfall can affect establishment and increase disease pressure.",
+    shift:"A legume phase may support nutrient cycling when nodulation and residue management are appropriate."
+  },
+  groundnut:{
+    management:"Assess drainage, soil structure and conditions for pegging and pod development.",
+    risks:"Waterlogging and unsuitable soil structure may affect pod formation.",
+    shift:"Groundnut introduces a legume phase but requires suitable soil and harvest conditions."
+  },
+  soybean:{
+    management:"Review drainage, suitable rhizobia, planting density and nutrient management.",
+    risks:"Excessive moisture, disease and photoperiod sensitivity may limit performance.",
+    shift:"Soybean offers crop-family diversification; nitrogen benefits are management-dependent."
+  },
+  sweet_potato:{
+    management:"Consider well-drained raised beds, vine establishment and soil-cover management.",
+    risks:"Waterlogging, pests and unsuitable soil preparation can affect storage roots.",
+    shift:"Changing from paddy rice to sweet potato may require raised beds and improved drainage."
+  },
+  cassava:{
+    management:"Review drainage, planting material, erosion control and extended growing duration.",
+    risks:"Root disease, erosion and long land occupation require attention.",
+    shift:"Cassava is a longer-duration land-use option rather than a short rotation phase."
+  },
+  pineapple:{
+    management:"Check drainage, soil suitability, mulch and long establishment periods.",
+    risks:"Waterlogging and disease can be concerns; cultivation occupies land for an extended period.",
+    shift:"Pineapple requires longer-term planning and may not fit short annual rotations."
+  },
+  banana:{
+    management:"Check drainage, wind exposure, planting material, nutrient supply and disease management.",
+    risks:"Waterlogging, wind damage and Fusarium wilt require local review.",
+    shift:"Banana is a longer-term planting decision rather than a short seasonal rotation stage."
+  },
+  coconut:{
+    management:"Assess drainage, soil depth, planting spacing and long-term maintenance.",
+    risks:"A perennial plantation requires substantial long-term land commitment.",
+    shift:"Coconut represents a land-use transition rather than an annual crop rotation."
+  },
+  durian:{
+    management:"Review soil drainage, planting material, orchard spacing and root-disease management.",
+    risks:"Waterlogging and root diseases can be serious; orchard establishment takes years.",
+    shift:"Durian is a long-term orchard investment, not a short seasonal rotation."
+  }
 };
 
 /* EXPLORE WHY */
 
-function renderCrops(crops){
- const root=$("cropList");
- root.replaceChildren();
+function renderCrops(crops) {
+  const root=$("cropList");
+  root.replaceChildren();
 
- let opened=null;
+  let opened=null;
 
- crops.slice(0,11).forEach((crop,index)=>{
-  const card=el("div","crop");
-  const img=el("img","cropPhoto");
-  img.alt=crop.name;
-  img.loading="lazy";
-  img.onerror=()=>img.style.display="none";
+  crops.slice(0,11).forEach((crop,index)=>{
+    const card=el("div","crop");
+    const img=el("img","cropPhoto");
 
-  cropPhoto(crop.id).then(src=>{
-   if(src)img.src=src;
-   else img.style.display="none";
+    img.alt=crop.name;
+    img.loading="lazy";
+    img.onerror=()=>img.style.display="none";
+
+    cropPhoto(crop.id).then(src=>{
+      if(src)img.src=src;
+      else img.style.display="none";
+    });
+
+    const info=el("div");
+    info.append(
+      el("strong","",`${index+1}. ${crop.name}`),
+      el("small","",
+        `Climate compatibility: ${fmt(crop.climate_score," / 100")}`),
+      el("small","",
+        crop.suggested_start_month
+          ?`Candidate planting month: ${months[crop.suggested_start_month-1]}`
+          :"Planting window not determined")
+    );
+
+    const button=el("button","","Explore Why");
+
+    button.onclick=()=>{
+      if(opened===card) {
+        card.querySelector(".cropExplanation")?.remove();
+        card.classList.remove("active");
+        button.textContent="Explore Why";
+        opened=null;
+        return;
+      }
+
+      document.querySelectorAll(".cropExplanation")
+        .forEach(x=>x.remove());
+
+      document.querySelectorAll(".crop")
+        .forEach(x=>x.classList.remove("active"));
+
+      document.querySelectorAll(".crop button")
+        .forEach(x=>{
+          if(x.textContent==="Hide Explanation")
+            x.textContent="Explore Why";
+        });
+
+      opened=card;
+      card.classList.add("active");
+      button.textContent="Hide Explanation";
+
+      selectedCrop=crop.id;
+      window.BUMIContext.selected_crop=crop.id;
+
+      const panel=el("div","cropExplanation");
+      panel.append(el("div","explainTitle",
+        `Why consider ${crop.name}?`
+      ));
+
+      const t=crop.thresholds||{};
+      const temp=t.mean_temperature_c||[];
+      const rain=t.monthly_rainfall_mm||[];
+
+      const evidence=el("div","evidenceGrid");
+
+      [
+        ["Climate screening",fmt(crop.climate_score," / 100")],
+        ["Candidate planting month",
+          crop.suggested_start_month
+            ?months[crop.suggested_start_month-1]
+            :"Not determined"],
+        ["Assumed temperature range",
+          temp.length?temp.join("–")+" °C":"Not available"],
+        ["Assumed monthly rainfall range",
+          rain.length?rain.join("–")+" mm":"Not available"]
+      ].forEach(([name,value])=>{
+        const box=el("div","evidenceBox");
+        box.append(
+          el("small","",name),
+          el("strong","",value)
+        );
+        evidence.append(box);
+      });
+
+      panel.append(evidence);
+
+      const monthly=assessment?.monthly_climatology||
+        climateData?.monthly_climatology||[];
+
+      const start=crop.suggested_start_month;
+      const duration=Math.min(
+        crop.approx_duration_months||4,12
+      );
+
+      const selectedMonths=[];
+
+      if(start) {
+        for(let i=0;i<duration;i++) {
+          const month=((start-1+i)%12)+1;
+          const row=monthly.find(r=>
+            Number(r.month)===month
+          );
+          if(row)selectedMonths.push(row);
+        }
+      }
+
+      const section=el("div","explainSection");
+      section.append(el("h3","","NASA environmental evidence"));
+
+      if(!selectedMonths.length) {
+        paragraph(section,
+          "A complete planting-window comparison is not available."
+        );
+      } else {
+        const meanTemp=average(
+          selectedMonths.map(r=>r.temperature_c)
+        );
+        const meanRain=average(
+          selectedMonths.map(r=>r.rainfall_mm)
+        );
+
+        paragraph(section,
+          `During the candidate growing period, historical mean temperature averages ${fmt(meanTemp," °C")} and monthly rainfall averages ${fmt(meanRain," mm")}.`
+        );
+
+        const scroll=el("div","tableScroll");
+        const table=el("table","evidenceTable");
+        const header=el("tr");
+
+        ["Month","Rainfall (mm)","Temperature (°C)","Screening"].forEach(x=>
+          header.append(el("th","",x))
+        );
+
+        table.append(header);
+
+        selectedMonths.forEach(row=>{
+          const tr=el("tr");
+
+          const rainOk=valid(row.rainfall_mm)&&
+            rain.length===2&&
+            row.rainfall_mm>=rain[0]&&
+            row.rainfall_mm<=rain[1];
+
+          const tempOk=valid(row.temperature_c)&&
+            temp.length===2&&
+            row.temperature_c>=temp[0]&&
+            row.temperature_c<=temp[1];
+
+          const missing=!valid(row.rainfall_mm)||
+            !valid(row.temperature_c);
+
+          const state=missing
+            ?"Incomplete data"
+            :rainOk&&tempOk
+              ?"Within both ranges"
+              :"Review conditions";
+
+          [
+            months[Number(row.month)-1],
+            fmt(row.rainfall_mm),
+            fmt(row.temperature_c),
+            state
+          ].forEach(x=>tr.append(el("td","",x)));
+
+          table.append(tr);
+        });
+
+        scroll.append(table);
+        section.append(scroll);
+
+        paragraph(section,
+          "These comparisons use provisional screening ranges. Being within both ranges does not establish field-level suitability."
+        );
+      }
+
+      panel.append(section);
+
+      if(crop.alternative_windows?.length) {
+        const windows=el("div","explainSection");
+        windows.append(el("h3","","Alternative planting windows"));
+
+        paragraph(windows,
+          crop.alternative_windows.map(w=>
+            `${months[w.start_month-1]} (${fmt(w.climate_score," / 100")})`
+          ).join(" · ")
+        );
+
+        panel.append(windows);
+      }
+
+      const advice=cropAdvice[crop.id];
+
+      if(advice) {
+        [
+          ["Management considerations",advice.management],
+          ["Potential risks",advice.risks],
+          ["What this means for your farming SHIFT",advice.shift]
+        ].forEach(([heading,body])=>{
+          const block=el("div","explainSection");
+          block.append(el("h3","",heading));
+          paragraph(block,body);
+          panel.append(block);
+        });
+      }
+
+      const actions=el("div","explainActions");
+
+      const view=el("button","","See Crop in 3D");
+      view.onclick=()=>{
+        showCrop(crop.id,crop.name,"Selected crop");
+        farmMode();
+        $("map").scrollIntoView({
+          behavior:"smooth",block:"center"
+        });
+      };
+
+      actions.append(view);
+      panel.append(actions);
+      card.append(panel);
+    };
+
+    info.append(button);
+    card.append(img,info);
+    root.append(card);
   });
-
-  const info=el("div");
-  info.append(
-   el("strong","",`${index+1}. ${crop.name}`),
-   el("small","",
-    `Climate compatibility: ${fmt(crop.climate_score," / 100")}`),
-   el("small","",
-    crop.suggested_start_month
-     ?`Candidate planting month: ${months[crop.suggested_start_month-1]}`
-     :"Planting window not determined")
-  );
-
-  const button=el("button","","Explore Why");
-
-  button.onclick=()=>{
-   if(opened===card){
-    card.querySelector(".cropExplanation")?.remove();
-    card.classList.remove("active");
-    button.textContent="Explore Why";
-    opened=null;
-    return;
-   }
-
-   document.querySelectorAll(".cropExplanation").forEach(x=>x.remove());
-   document.querySelectorAll(".crop").forEach(x=>x.classList.remove("active"));
-   document.querySelectorAll(".crop button").forEach(x=>{
-    if(x.textContent==="Hide Explanation")
-     x.textContent="Explore Why";
-   });
-
-   opened=card;
-   card.classList.add("active");
-   button.textContent="Hide Explanation";
-
-   selectedCrop=crop.id;
-   window.BUMIContext.selected_crop=crop.id;
-
-   const panel=el("div","cropExplanation");
-   panel.append(el("div","explainTitle",
-    `Why consider ${crop.name}?`
-   ));
-
-   const thresholds=crop.thresholds||{};
-   const temp=thresholds.mean_temperature_c||[];
-   const rain=thresholds.monthly_rainfall_mm||[];
-
-   const evidence=el("div","evidenceGrid");
-
-   [
-    ["Climate screening",fmt(crop.climate_score," / 100")],
-    ["Candidate planting month",
-     crop.suggested_start_month
-      ?months[crop.suggested_start_month-1]
-      :"Not determined"],
-    ["Assumed temperature range",
-     temp.length?temp.join("–")+" °C":"Not available"],
-    ["Assumed monthly rainfall range",
-     rain.length?rain.join("–")+" mm":"Not available"]
-   ].forEach(([name,value])=>{
-    const box=el("div","evidenceBox");
-    box.append(
-     el("small","",name),
-     el("strong","",value)
-    );
-    evidence.append(box);
-   });
-
-   panel.append(evidence);
-
-   const monthly=assessment?.monthly_climatology||
-    climateData?.monthly_climatology||[];
-
-   const start=crop.suggested_start_month;
-   const duration=Math.min(crop.approx_duration_months||4,12);
-
-   const selectedMonths=[];
-
-   if(start){
-    for(let i=0;i<duration;i++){
-     const month=((start-1+i)%12)+1;
-     const row=monthly.find(r=>Number(r.month)===month);
-     if(row)selectedMonths.push(row);
-    }
-   }
-
-   const section=el("div","explainSection");
-   section.append(el("h3","","NASA environmental evidence"));
-
-   if(!selectedMonths.length){
-    paragraph(section,
-     "A complete planting-window comparison is not available for this crop."
-    );
-   }else{
-    const temperatures=selectedMonths
-     .map(r=>r.temperature_c)
-     .filter(v=>v!=null);
-
-    const rainfall=selectedMonths
-     .map(r=>r.rainfall_mm)
-     .filter(v=>v!=null);
-
-    if(temperatures.length){
-     const average=temperatures.reduce((a,b)=>a+b,0)/
-      temperatures.length;
-     paragraph(section,
-      `Mean historical temperature during the screened period: ${fmt(average," °C")}.`
-     );
-    }
-
-    if(rainfall.length){
-     const average=rainfall.reduce((a,b)=>a+b,0)/
-      rainfall.length;
-     paragraph(section,
-      `Mean historical monthly rainfall during the screened period: ${fmt(average," mm")}.`
-     );
-    }
-
-    paragraph(section,
-     "The provisional score compares historical rainfall and temperature with assumed crop screening ranges. It is not a probability of crop success."
-    );
-
-    const scroll=el("div","tableScroll");
-    const table=el("table","evidenceTable");
-    const thead=el("thead");
-    const header=el("tr");
-
-    ["Month","Rainfall (mm)","Temp (°C)","Screening"].forEach(x=>{
-     header.append(el("th","",x));
-    });
-
-    thead.append(header);
-    table.append(thead);
-
-    const tbody=el("tbody");
-
-    selectedMonths.forEach(row=>{
-     const tr=el("tr");
-
-     const rainfallOk=
-      row.rainfall_mm!=null&&rain.length===2&&
-      row.rainfall_mm>=rain[0]&&row.rainfall_mm<=rain[1];
-
-     const tempOk=
-      row.temperature_c!=null&&temp.length===2&&
-      row.temperature_c>=temp[0]&&row.temperature_c<=temp[1];
-
-     const missing=
-      row.rainfall_mm==null||row.temperature_c==null;
-
-     const state=missing
-      ?"Incomplete data"
-      :rainfallOk&&tempOk
-       ?"Within both ranges"
-       :"Review conditions";
-
-     [
-      months[Number(row.month)-1],
-      fmt(row.rainfall_mm),
-      fmt(row.temperature_c),
-      state
-     ].forEach(x=>tr.append(el("td","",x)));
-
-     tbody.append(tr);
-    });
-
-    table.append(tbody);
-    scroll.append(table);
-    section.append(scroll);
-   }
-
-   panel.append(section);
-
-   if(crop.alternative_windows?.length){
-    const windows=el("div","explainSection");
-    windows.append(el("h3","","Alternative planting windows"));
-
-    paragraph(windows,
-     crop.alternative_windows.map(w=>
-      `${months[w.start_month-1]} (${fmt(w.climate_score," / 100")})`
-     ).join(" · ")
-    );
-
-    panel.append(windows);
-   }
-
-   const advice=cropAdvice[crop.id];
-
-   if(advice){
-    [
-     ["Management considerations",advice.management],
-     ["Potential risks",advice.risks],
-     ["What this means for your farming SHIFT",advice.shift]
-    ].forEach(([heading,body])=>{
-     const block=el("div","explainSection");
-     block.append(el("h3","",heading));
-     paragraph(block,body);
-     panel.append(block);
-    });
-   }
-
-   const actions=el("div","explainActions");
-
-   const view=el("button","","See Crop in 3D");
-   view.onclick=()=>{
-    showCrop(crop.id,crop.name,"Selected crop");
-    farmMode();
-    document.getElementById("map").scrollIntoView({
-     behavior:"smooth",block:"center"
-    });
-   };
-
-   const ask=el("button","secondaryButton","Ask BUMI about this crop");
-   ask.onclick=()=>{
-    $("bumiQuestion").value=
-     `Using the NASA climate evidence for my selected farm, explain whether ${crop.name} is a reasonable option, its risks, and how it could fit my farming shift.`;
-    $("bumiQuestion").scrollIntoView({
-     behavior:"smooth",block:"center"
-    });
-    $("bumiQuestion").focus();
-   };
-
-   actions.append(view,ask);
-   panel.append(actions);
-
-   card.append(panel);
-  };
-
-  info.append(button);
-  card.append(img,info);
-  root.append(card);
- });
 }
 
 /* ROTATION STRATEGIES */
 
-function renderStrategies(items){
- const root=$("rotationList");
- root.replaceChildren();
- selectedStrategy=null;
+function renderStrategies(items) {
+  const root=$("rotationList");
+  root.replaceChildren();
+  selectedStrategy=null;
 
- items.forEach((s,i)=>{
-  const button=el("button","rotation");
-
-  button.append(
-   el("strong","",
-    (s.type==="baseline"?"Baseline: ":"Alternative: ")
-    +s.crops.join(" → ")
-   ),
-   el("small","",
-    `Climate screening: ${fmt(s.climate_score??s.screening_index," / 100")}`
-   )
-  );
-
-  button.onclick=()=>{
-   document.querySelectorAll(".rotation").forEach(x=>
-    x.classList.remove("active")
-   );
-   button.classList.add("active");
-
-   selectedStrategy=s;
-   window.BUMIContext.selected_rotation=s.id;
-
-   const detail=$("strategyDetails");
-   detail.replaceChildren();
-
-   const panel=el("div","detail");
-   panel.append(el("h3","",s.crops.join(" → ")));
-
-   if(s.evidence){
-    panel.append(el("h3","","Environmental Evidence"));
-    paragraph(panel,s.evidence);
-   }
-
-   if(s.comparison_to_baseline){
-    panel.append(el("h3","","Compared with Baseline"));
-    paragraph(panel,s.comparison_to_baseline);
-   }
-
-   if(s.potential_benefits?.length){
-    panel.append(el("h3","","Potential Benefits"));
-    bullets(panel,s.potential_benefits);
-   }
-
-   if(s.risks?.length){
-    panel.append(el("h3","","Risks and Local Checks"));
-    bullets(panel,s.risks);
-   }
-
-   detail.append(panel);
-   renderTimeline(s);
-   renderActions(s);
-  };
-
-  root.append(button);
-
-  if(i===1||(items.length===1&&i===0)){
-   button.click();
+  if(!items.length) {
+    root.append(el("p","status",
+      "No rotation strategies could be calculated from the available data."
+    ));
+    return;
   }
- });
+
+  items.forEach((s,i)=>{
+    const button=el("button","rotation");
+
+    button.append(
+      el("strong","",
+        (s.type==="baseline"?"Baseline: ":"Alternative: ")
+        +s.crops.join(" → ")
+      ),
+      el("small","",
+        `Climate screening: ${fmt(s.climate_score??s.screening_index," / 100")}`
+      )
+    );
+
+    button.onclick=()=>{
+      document.querySelectorAll(".rotation")
+        .forEach(x=>x.classList.remove("active"));
+
+      button.classList.add("active");
+      selectedStrategy=s;
+      window.BUMIContext.selected_rotation=s.id;
+
+      const detail=$("strategyDetails");
+      detail.replaceChildren();
+
+      const panel=el("div","detail");
+      panel.append(el("h3","",s.crops.join(" → ")));
+
+      if(s.evidence) {
+        panel.append(el("h3","","Environmental Evidence"));
+        paragraph(panel,s.evidence);
+      }
+
+      if(s.comparison_to_baseline) {
+        panel.append(el("h3","","Compared with Baseline"));
+        paragraph(panel,s.comparison_to_baseline);
+      }
+
+      if(s.potential_benefits?.length) {
+        panel.append(el("h3","","Potential Benefits"));
+        bullets(panel,s.potential_benefits);
+      }
+
+      if(s.risks?.length) {
+        panel.append(el("h3","","Risks and Local Checks"));
+        bullets(panel,s.risks);
+      }
+
+      detail.append(panel);
+
+      renderTimeline(s);
+      renderActions(s);
+      renderDecisionEvidence(s);
+    };
+
+    root.append(button);
+
+    if(i===1||(items.length===1&&i===0)) {
+      button.click();
+    }
+  });
 }
 
 /* FARMING SHIFTS */
 
-function renderShifts(data){
- const root=$("shiftList");
- root.replaceChildren();
+function renderShifts(data) {
+  const root=$("shiftList");
+  root.replaceChildren();
 
- const best=(data.strategies||[])
-  .find(s=>s.type==="alternative");
+  const best=(data.strategies||[])
+    .find(s=>s.type==="alternative");
 
- const top=(data.crop_recommendations||[])[0];
+  const top=(data.crop_recommendations||[])[0];
+  const shifts=[];
 
- const shifts=[];
+  if(best) {
+    shifts.push([
+      "Crop diversification",
+      `Explore ${best.crops.join(" → ")} as an alternative to your baseline.`
+    ]);
+    shifts.push([
+      "Planting schedule",
+      `Review a candidate sequence beginning in ${best.start_month}.`
+    ]);
+  }
 
- if(best){
+  if(top) {
+    shifts.push([
+      "Crop selection",
+      `${top.name} has a provisional climate score of ${fmt(top.climate_score," / 100")}.`
+    ]);
+  }
+
   shifts.push([
-   "Crop diversification",
-   `Explore ${best.crops.join(" → ")} as an alternative to your baseline.`
+    "Soil and water management",
+    "Compare crop-family diversity, soil cover and rainfall exposure."
   ]);
-  shifts.push([
-   "Planting schedule",
-   `Review a candidate sequence beginning in ${best.start_month}.`
-  ]);
- }
 
- if(top){
-  shifts.push([
-   "Crop selection",
-   `${top.name} has a provisional climate score of ${fmt(top.climate_score," / 100")}.`
-  ]);
- }
+  shifts.forEach(([title,description],i)=>{
+    const card=el("div","shift");
+    card.style.borderLeftColor=
+      ["#216ad6","#7658cb","#079f9b","#e9a12a"][i%4];
 
- shifts.push([
-  "Soil and water management",
-  "Compare crop-family diversity, soil cover and rainfall exposure."
- ]);
+    card.append(
+      el("h3","",title),
+      el("p","",description)
+    );
+    root.append(card);
+  });
+}
 
- shifts.forEach(([title,description],i)=>{
-  const card=el("div","shift");
-  card.style.borderLeftColor=
-   ["#216ad6","#7658cb","#079f9b","#e9a12a"][i%4];
+/* WHY MAKE THIS SHIFT */
 
-  card.append(
-   el("h3","",title),
-   el("p","",description)
+function renderDecisionEvidence(strategy) {
+  const root=$("decisionEvidence");
+  root.replaceChildren();
+
+  if(!assessment||!strategy)return;
+
+  const strategies=assessment.strategies||[];
+  const baseline=strategies.find(s=>s.type==="baseline");
+  const summary=climateData?.summary||assessment.summary||{};
+  const variability=climateData?.variability||{};
+
+  const header=el("div","decisionHeader");
+  header.append(
+    el("h3","","Understand the evidence behind your decision"),
+    el("p","",
+      `Selected priority: ${priorityInfo[$("priority").value].title.replace("Your goal: ","")}. The comparison below uses the current farm assessment.`
+    )
   );
-  root.append(card);
- });
+  root.append(header);
+
+  const comparison=el("div","comparisonGrid");
+
+  function comparisonCard(title,s,cls) {
+    const card=el("div","comparisonCard "+cls);
+    card.append(
+      el("small","",title),
+      el("h3","",s?s.crops.join(" → "):"Not available"),
+      el("p","",
+        s
+          ?`Climate screening: ${fmt(s.climate_score," / 100")}. Crop-family count: ${s.crop_family_count??"—"}.`
+          :"No baseline reference was returned."
+      )
+    );
+    return card;
+  }
+
+  comparison.append(
+    comparisonCard("EXISTING REFERENCE",baseline,""),
+    comparisonCard("SELECTED STRATEGY",strategy,"alternative")
+  );
+  root.append(comparison);
+
+  const stats=el("div","evidenceStats");
+
+  const difference=baseline&&
+    valid(strategy.climate_score)&&
+    valid(baseline.climate_score)
+      ?strategy.climate_score-baseline.climate_score
+      :null;
+
+  [
+    ["Climate index difference",
+      valid(difference)?`${difference>=0?"+":""}${fmt(difference)} pts`:"—"],
+    ["Crop families",String(strategy.crop_family_count??"—")],
+    ["Total duration",fmt(strategy.duration_months," months")],
+    ["Annual rainfall",fmt(summary.mean_annual_rainfall_mm," mm")]
+  ].forEach(([name,value])=>{
+    const card=el("div","evidenceStat");
+    card.append(
+      el("small","",name),
+      el("strong","",value)
+    );
+    stats.append(card);
+  });
+
+  root.append(stats);
+
+  const reasons=el("div","reasonGrid");
+
+  function reasonCard(title,body,color) {
+    const card=el("div","reasonCard");
+    card.style.borderLeftColor=color;
+    card.append(
+      el("h3","",title),
+      el("p","",body)
+    );
+    reasons.append(card);
+  }
+
+  reasonCard(
+    "1. Climate evidence",
+    `NASA historical rainfall and temperature are used to screen the proposed sequence. The selected strategy has a provisional climate index of ${fmt(strategy.climate_score," / 100")}. This index is not a predicted success rate.`,
+    "#216ad6"
+  );
+
+  reasonCard(
+    "2. Crop-family diversification",
+    `The sequence contains ${strategy.crop_family_count??"an unreported number of"} crop families. Alternating crop families may diversify rooting patterns and management practices, although pest-cycle benefits depend on the specific crops and pathogens.`,
+    "#7658cb"
+  );
+
+  reasonCard(
+    "3. Soil-management opportunities",
+    strategy.legume_included
+      ?"The selected sequence includes a legume. Potential nutrient-cycling benefits depend on effective nodulation, biomass production and residue handling; soil improvement has not been measured."
+      :"This sequence does not include a legume phase. Review crop residues, soil cover and possible diversification opportunities before interpreting soil-health benefits.",
+    "#079f9b"
+  );
+
+  reasonCard(
+    "4. Water-management implications",
+    `Historical annual rainfall averages ${fmt(summary.mean_annual_rainfall_mm," mm")}. Rainfall exposure can guide seasonal screening, but it cannot establish field drainage, irrigation access or waterlogging risk without local information.`,
+    "#e9a12a"
+  );
+
+  root.append(reasons);
+
+  const more=el("div","reasonGrid");
+  more.style.marginTop="13px";
+
+  const benefits=el("div","reasonCard");
+  benefits.style.borderLeftColor="#079f9b";
+  benefits.append(el("h3","","Potential benefits"));
+  bullets(benefits,strategy.potential_benefits?.length
+    ?strategy.potential_benefits
+    :["Compare crop sequences using the available climate evidence."]);
+  more.append(benefits);
+
+  const risks=el("div","reasonCard");
+  risks.style.borderLeftColor="#e97c6e";
+  risks.append(el("h3","","Risks and local verification"));
+  bullets(risks,strategy.risks?.length
+    ?strategy.risks
+    :["Confirm soil, drainage, pest and market conditions locally."]);
+  more.append(risks);
+
+  root.append(more);
+
+  const monthly=assessment.monthly_climatology||
+    climateData?.monthly_climatology||[];
+
+  if(monthly.length) {
+    const section=el("div","explainSection");
+    section.append(el("h3","","NASA monthly climate evidence"));
+
+    const scroll=el("div","tableScroll");
+    const table=el("table","evidenceTable");
+    const headerRow=el("tr");
+
+    ["Month","Rainfall (mm)","Temperature (°C)"].forEach(x=>
+      headerRow.append(el("th","",x))
+    );
+    table.append(headerRow);
+
+    months.forEach((name,i)=>{
+      const row=monthly.find(r=>Number(r.month)===i+1)||{};
+      const tr=el("tr");
+      [
+        name,
+        fmt(row.rainfall_mm),
+        fmt(row.temperature_c)
+      ].forEach(x=>tr.append(el("td","",x)));
+      table.append(tr);
+    });
+
+    scroll.append(table);
+    section.append(scroll);
+    root.append(section);
+  }
+
+  const foot=el("div","evidenceFoot");
+
+  const trend=variability.temperature_trend_c_per_year;
+  const trendText=valid(trend)
+    ?` The historical temperature trend estimate is ${fmt(trend," °C/year")}, based on the available annual series.`
+    :"";
+
+  foot.textContent=
+    "Evidence interpretation: NASA POWER supplies historical gridded environmental estimates. Crop thresholds, ranking weights and soil-management indices are provisional. Neither soil improvement, crop yield nor profitability is predicted."
+    +trendText;
+
+  root.append(foot);
 }
 
 /* FARMING CHECKLIST */
 
-function renderActions(strategy){
- const root=$("activityList");
- root.replaceChildren();
+function renderActions(strategy) {
+  const root=$("activityList");
+  root.replaceChildren();
 
- let items=[];
+  let items=[];
 
- if(strategy?.stages?.length){
-  items=strategy.stages.map((s,i)=>({
-   title:`Stage ${i+1}: ${s.crop}`,
-   reason:`Candidate period: ${s.start_month}–${s.end_month}. Review establishment and local field conditions.`
-  }));
- }
+  if(strategy?.stages?.length) {
+    items=strategy.stages.map((s,i)=>({
+      title:`Stage ${i+1}: ${s.crop}`,
+      reason:`Candidate period: ${s.start_month}–${s.end_month}. Check crop establishment, planting material and local field conditions.`
+    }));
+  }
 
- if(strategy?.legume_included){
-  items.push({
-   title:"Review legume establishment",
-   reason:"Check nodulation, biomass and residue-management practices."
+  if(strategy?.legume_included) {
+    items.push({
+      title:"Review legume establishment",
+      reason:"Check nodulation, biomass and residue-management practices."
+    });
+  }
+
+  if(valid(strategy?.ground_cover_proxy)&&
+     strategy.ground_cover_proxy<70) {
+    items.push({
+      title:"Reduce exposed-soil periods",
+      reason:"Consider appropriate mulching, residue retention or cover crops."
+    });
+  }
+
+  (strategy?.risks||[]).forEach(risk=>{
+    items.push({
+      title:"Review a strategy-specific risk",
+      reason:risk
+    });
   });
- }
 
- if(strategy?.ground_cover_proxy<70){
-  items.push({
-   title:"Reduce exposed-soil periods",
-   reason:"Consider appropriate mulching or cover-crop practices."
+  if(!items.length) {
+    items=assessment?.suggested_activities||[];
+  }
+
+  if(!items.length) {
+    root.append(el("p","status",
+      "Select a calculated rotation to see its farming actions."
+    ));
+    return;
+  }
+
+  items.forEach((item,i)=>{
+    const card=el("div","action");
+    card.style.borderLeftColor=
+      ["#216ad6","#079f9b","#7658cb","#e9a12a"][i%4];
+
+    card.append(
+      el("strong","",item.title),
+      el("p","",item.reason||item.description||"")
+    );
+    root.append(card);
   });
- }
-
- (strategy?.risks||[]).forEach(risk=>{
-  items.push({
-   title:"Review a strategy-specific risk",
-   reason:risk
-  });
- });
-
- if(!items.length){
-  items=assessment?.suggested_activities||[];
- }
-
- items.forEach((item,i)=>{
-  const card=el("div","action");
-  card.style.borderLeftColor=
-   ["#216ad6","#079f9b","#7658cb","#e9a12a"][i%4];
-
-  card.append(
-   el("strong","",item.title),
-   el("p","",item.reason||item.description||"")
-  );
-  root.append(card);
- });
 }
 
 /* ANALYZE FARM */
 
 $("analyzeBtn").onclick=async()=>{
- const btn=$("analyzeBtn");
- const ticket=++version;
+  const btn=$("analyzeBtn");
+  const ticket=++version;
 
- const params={
-  ...coords,
-  priority:$("priority").value,
-  baseline:$("baseline").value
- };
+  const params={
+    ...coords,
+    priority:$("priority").value,
+    baseline:$("baseline").value
+  };
 
- btn.disabled=true;
- put("status","Analyzing NASA observations and farming strategies...");
-
- try{
-  const results=await Promise.allSettled([
-   api("/climate/history",coords),
-   api("/recommendations",params)
-  ]);
-
-  if(ticket!==version)return;
-
-  const [climateResult,recommendationResult]=results;
-
-  if(climateResult.status==="fulfilled"){
-   renderNASA(climateResult.value);
-  }
-
-  if(recommendationResult.status==="fulfilled"){
-   assessment=recommendationResult.value;
-
-   renderCrops(assessment.crop_recommendations||[]);
-   renderStrategies(
-    assessment.strategies||assessment.rotation_options||[]
-   );
-   renderShifts(assessment);
-
-   if(!selectedStrategy)renderActions(null);
-  }
-
+  btn.disabled=true;
   put("status",
-   climateResult.status==="fulfilled"&&
-   recommendationResult.status==="fulfilled"
-    ?"Analysis complete. Explore your results."
-    :"Some information could not be loaded. Please try again."
+    "Analyzing NASA observations and farming strategies..."
   );
- }finally{
-  if(ticket===version)btn.disabled=false;
- }
+
+  try {
+    const results=await Promise.allSettled([
+      api("/climate/history",coords),
+      api("/recommendations",params)
+    ]);
+
+    if(ticket!==version)return;
+
+    const [climateResult,recommendationResult]=results;
+
+    if(climateResult.status==="fulfilled") {
+      renderNASA(climateResult.value);
+    }
+
+    if(recommendationResult.status==="fulfilled") {
+      assessment=recommendationResult.value;
+
+      renderCrops(assessment.crop_recommendations||[]);
+      renderStrategies(
+        assessment.strategies||assessment.rotation_options||[]
+      );
+      renderShifts(assessment);
+
+      if(!selectedStrategy)renderActions(null);
+    }
+
+    if(climateResult.status==="fulfilled"&&
+       recommendationResult.status==="fulfilled") {
+      put("status","Analysis complete. Explore your results.");
+    } else {
+      put("status",
+        "Some information could not be loaded. Please try again."
+      );
+    }
+
+  } catch(error) {
+    console.error("Farm analysis:",error);
+    put("status","Analysis could not be completed.");
+  } finally {
+    if(ticket===version)btn.disabled=false;
+  }
 };
-
-/* GEMINI CHAT WITH SAVED HISTORY */
-
-const STORAGE_KEY="bumi_shift_chat_v65";
-let messages=[];
-let pending=null;
-let busy=false;
-let generation=0;
-let controller=null;
-
-function saveChat(){
- try{
-  localStorage.setItem(STORAGE_KEY,JSON.stringify({
-   messages:messages.slice(-24),pending
-  }));
- }catch(e){}
-}
-
-function restoreChat(){
- try{
-  const saved=JSON.parse(
-   localStorage.getItem(STORAGE_KEY)||"{}"
-  );
-
-  if(Array.isArray(saved.messages)){
-   messages=saved.messages.filter(m=>
-    m&&["user","assistant"].includes(m.role)&&
-    typeof m.content==="string"
-   ).slice(-24);
-  }
-
-  if(saved.pending?.question&&saved.pending?.farm){
-   pending=saved.pending;
-  }
- }catch(e){}
-}
-
-function bubble(role,content){
- const node=el("div","bumiBubble "+role,content);
- $("bumiChat").append(node);
- $("bumiChat").scrollTop=$("bumiChat").scrollHeight;
- return node;
-}
-
-function renderChat(){
- $("bumiChat").replaceChildren();
-
- if(!messages.length&&!pending){
-  bubble("assistant",
-   "What would you like to explore about your farm?"
-  );
- }
-
- messages.forEach(m=>bubble(m.role,m.content));
-
- if(pending){
-  bubble("user",pending.question);
-
-  if(!busy){
-   const box=bubble("assistant",
-    "Your question is saved. Continue when you're ready."
-   );
-   const retry=el("button","bumiRetry","Continue");
-   retry.onclick=()=>sendChat(true);
-   box.append(retry);
-  }
- }
-}
-
-function farmContext(){
- return{
-  latitude:coords.latitude,
-  longitude:coords.longitude,
-  priority:$("priority").value,
-  baseline:$("baseline").value,
-  selected_crop:window.BUMIContext.selected_crop,
-  selected_rotation:window.BUMIContext.selected_rotation
- };
-}
-
-async function askGemini(question,farm,history){
- controller=new AbortController();
- const active=controller;
- const timeout=setTimeout(()=>active.abort(),105000);
-
- try{
-  const response=await fetch("/ask",{
-   method:"POST",
-   headers:{"Content-Type":"application/json"},
-   signal:active.signal,
-   body:JSON.stringify({
-    question,...farm,history
-   })
-  });
-
-  const data=await response.json().catch(()=>({}));
-
-  if(!response.ok||
-     data.generated_by!=="Gemini"||
-     typeof data.answer!=="string"||
-     !data.answer.trim()){
-   throw Error("Answer not completed");
-  }
-
-  return data.answer.trim();
- }finally{
-  clearTimeout(timeout);
-  if(controller===active)controller=null;
- }
-}
-
-async function sendChat(resume=false){
- if(busy)return;
-
- if(!resume){
-  const question=$("bumiQuestion").value.trim();
-  if(!question)return;
-
-  pending={question,farm:farmContext()};
-  $("bumiQuestion").value="";
-  saveChat();
- }
-
- if(!pending)return;
-
- const current=pending;
- const currentGeneration=generation;
-
- busy=true;
- $("bumiSend").disabled=true;
- $("bumiSend").textContent="Thinking...";
- $("bumiStatus").textContent="BUMI is reviewing your question...";
-
- renderChat();
-
- const loading=bubble("pending",
-  "Looking at the evidence and possible farming options..."
- );
-
- try{
-  const answer=await askGemini(
-   current.question,current.farm,messages.slice(-12)
-  );
-
-  if(currentGeneration!==generation)return;
-
-  messages.push(
-   {role:"user",content:current.question},
-   {role:"assistant",content:answer}
-  );
-
-  messages=messages.slice(-24);
-  pending=null;
-  saveChat();
-  $("bumiStatus").textContent="Powered by Gemini";
-
- }catch(e){
-  if(currentGeneration!==generation)return;
-  $("bumiStatus").textContent="Question saved";
-
- }finally{
-  loading.remove();
-
-  if(currentGeneration===generation){
-   busy=false;
-   $("bumiSend").disabled=false;
-   $("bumiSend").textContent="Send";
-   renderChat();
-  }
- }
-}
-
-$("bumiSend").onclick=()=>sendChat(false);
-
-$("bumiQuestion").addEventListener("keydown",e=>{
- if(e.key==="Enter"&&!e.shiftKey){
-  e.preventDefault();
-  sendChat(false);
- }
-});
-
-$("bumiClear").onclick=()=>{
- generation++;
- controller?.abort();
-
- messages=[];
- pending=null;
- busy=false;
-
- $("bumiSend").disabled=false;
- $("bumiSend").textContent="Send";
-
- saveChat();
- renderChat();
- $("bumiStatus").textContent="Powered by Gemini";
-};
-
-restoreChat();
-renderChat();
 
 });
 </script>
